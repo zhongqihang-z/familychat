@@ -1,0 +1,2169 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+<title>家庭聊天</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #e8f5ee; }
+  button { font-family: inherit; border: none; cursor: pointer; }
+
+  /* ---------- 登录页 ---------- */
+  #login {
+    position: fixed; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; background: #1faa59; color: #fff; padding: 24px;
+  }
+  #login h1 { font-size: 40px; margin-bottom: 8px; letter-spacing: 4px; }
+  #login p { font-size: 15px; opacity: .85; margin-bottom: 40px; }
+  #nameInput {
+    width: 100%; max-width: 320px; height: 56px; border-radius: 12px; border: none;
+    font-size: 20px; padding: 0 18px; text-align: center; outline: none; margin-bottom: 16px;
+  }
+  #joinBtn {
+    width: 100%; max-width: 320px; height: 56px; border-radius: 12px;
+    background: #fff; color: #1faa59; font-size: 22px; font-weight: 700;
+  }
+
+  /* ---------- 主界面 ---------- */
+  #app { position: fixed; inset: 0; display: flex; flex-direction: column; }
+  #topbar {
+    background: #1faa59; color: #fff; padding: 12px 16px;
+    display: flex; align-items: center; justify-content: space-between; flex-shrink: 0;
+  }
+  #topbar .title { font-size: 21px; font-weight: 700; }
+  #topbar .sub { font-size: 13px; opacity: .9; margin-top: 2px; }
+  #connDot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; background: #ffd54d; margin-right: 5px; }
+  #connDot.on { background: #b9f6ca; }
+
+  /* 成员条 */
+  #members { display: flex; gap: 10px; padding: 10px 12px; overflow-x: auto; background: #d7efe1; flex-shrink: 0; }
+  #hostBar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #fff8e1; font-size: 12px; color: #6d5c00; flex-shrink: 0; }
+  #hostBar button { border: 1px solid #b8860b; background: #fff; color: #6d5c00; border-radius: 6px; padding: 4px 10px; font-size: 12px; }
+  #hostBar button:active { background: #ffe9a8; }
+  /* 保活检查条幅：通知权限/电池白名单没开时红色醒目提示 */
+  #permBar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; background: #ffebee; font-size: 12px; color: #b71c1c; flex-shrink: 0; line-height: 1.5; }
+  #permBar button { border: 1px solid #b71c1c; background: #fff; color: #b71c1c; border-radius: 6px; padding: 4px 10px; font-size: 12px; flex-shrink: 0; }
+  #permBar button:active { background: #ffcdd2; }
+  .member {
+    flex-shrink: 0; display: flex; flex-direction: column; align-items: center; gap: 3px;
+    background: #fff; border-radius: 12px; padding: 8px 12px; min-width: 64px;
+    border: 2px solid transparent;
+  }
+  .member .avatar {
+    width: 42px; height: 42px; border-radius: 50%; background: #1faa59; color: #fff;
+    display: flex; align-items: center; justify-content: center; font-size: 20px; font-weight: 700;
+  }
+  .member .mname { font-size: 13px; color: #333; max-width: 60px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .member .calltip { font-size: 11px; color: #1faa59; }
+  .member.me { border-color: #ffd54d; }
+
+  /* 消息区 */
+  #messages { flex: 1; overflow-y: auto; padding: 14px 12px; display: flex; flex-direction: column; gap: 10px; }
+  .sys { text-align: center; font-size: 12px; color: #8aa396; }
+  .msg { max-width: 78%; padding: 10px 14px; border-radius: 14px; font-size: 18px; line-height: 1.45; word-break: break-word; }
+  .msg .who { display: block; font-size: 12px; color: #7a9b8a; margin-bottom: 3px; }
+  .msg.mine { align-self: flex-end; background: #a5e8c3; border-bottom-right-radius: 4px; }
+  .msg.other { align-self: flex-start; background: #fff; border-bottom-left-radius: 4px; }
+
+  /* 输入区 */
+  #inputBar { display: flex; gap: 10px; padding: 10px 12px calc(10px + env(safe-area-inset-bottom)); background: #d7efe1; flex-shrink: 0; }
+  #msgInput {
+    flex: 1; min-width: 0; height: 50px; border-radius: 25px; border: none; font-size: 19px;
+    padding: 0 20px; outline: none; background: #fff;
+  }
+  #sendBtn {
+    flex-shrink: 0; height: 50px; padding: 0 22px; border-radius: 25px; background: #1faa59;
+    color: #fff; font-size: 19px; font-weight: 700;
+  }
+  #sendBtn:disabled { background: #9dcfb3; }
+  /* 发照片按钮 + 图片消息 + 全屏看图 */
+  #imgBtn {
+    height: 50px; width: 50px; border-radius: 25%; background: #fff; color: #1faa59;
+    font-size: 22px; flex-shrink: 0;
+  }
+  #imgBtn:disabled { opacity: .5; }
+  .msg.imgmsg { padding: 6px; }
+  .msg.imgmsg .imgwrap { display: block; max-width: 220px; }
+  .msg.imgmsg img.thumb {
+    display: block; max-width: 220px; max-height: 280px; border-radius: 10px; cursor: zoom-in;
+    background: #eee;
+  }
+  .msg.imgmsg .imginfo { font-size: 11px; color: #7a9b8a; margin-top: 4px; }
+  #imgViewer {
+    position: fixed; inset: 0; background: rgba(0,0,0,.92); z-index: 60;
+    display: flex; align-items: center; justify-content: center; cursor: zoom-out;
+  }
+  #imgViewer[hidden] { display: none; }
+  #imgViewer img { max-width: 100%; max-height: 100%; object-fit: contain; }
+
+  /* 快捷常用语：老人不用打字，点一下直接发 */
+  #quickBar { display: flex; gap: 8px; padding: 8px 12px 0; flex-wrap: wrap; flex-shrink: 0; background: #d7efe1; }
+  #quickBar button { border: 1px solid #1faa59; background: #fff; color: #1faa59; border-radius: 16px; padding: 6px 12px; font-size: 15px; }
+  #quickBar button:active { background: #a5e8c3; }
+
+  /* 语音消息按钮（按住说话） */
+  #vmBtn {
+    height: 50px; width: 50px; border-radius: 25%; background: #fff; color: #1faa59;
+    font-size: 20px; flex-shrink: 0;
+  }
+  #vmBtn.rec { background: #e53935; color: #fff; }
+  .msg.audiomsg { padding: 6px 10px; }
+  .msg.audiomsg .vplay {
+    display: inline-flex; align-items: center; gap: 6px; cursor: pointer;
+    border: none; background: rgba(31,170,89,.14); color: #14663a;
+    border-radius: 16px; padding: 9px 14px; font-size: 16px;
+  }
+  .msg.audiomsg .vplay:active { background: rgba(31,170,89,.32); }
+  .msg.audiomsg .imginfo { font-size: 11px; color: #7a9b8a; margin-top: 4px; }
+  /* 录音中浮层 */
+  #vmRecTip {
+    position: fixed; left: 50%; top: 50%; transform: translate(-50%,-50%); z-index: 70;
+    background: rgba(0,0,0,.82); color: #fff; border-radius: 12px; padding: 18px 24px;
+    text-align: center; font-size: 15px; display: none; min-width: 150px;
+  }
+  #vmRecTip.on { display: block; }
+  #vmRecTime { font-size: 28px; font-weight: 700; margin-bottom: 6px; }
+  #vmRecText { opacity: .85; }
+
+  /* 未读消息角标 */
+  #unreadBadge { display: none; background: #e53935; color: #fff; border-radius: 10px; padding: 1px 8px; font-size: 12px; margin-left: 6px; }
+  #unreadBadge.on { display: inline-block; }
+
+  /* 消息长按菜单（复制/撤回） */
+  #msgMenu {
+    position: fixed; z-index: 80; background: #fff; border-radius: 10px;
+    box-shadow: 0 4px 18px rgba(0,0,0,.28); display: none; overflow: hidden; min-width: 130px;
+  }
+  #msgMenu.on { display: block; }
+  #msgMenu button { display: block; width: 100%; border: none; background: #fff; padding: 12px 20px; font-size: 16px; }
+  #msgMenu button:active { background: #eee; }
+  #msgMenu button.danger { color: #e53935; }
+  /* 消息不可选中/不长按弹系统菜单（自定义长按菜单） */
+  .msg { -webkit-user-select: none; user-select: none; -webkit-touch-callout: none; }
+  #msgInput { -webkit-user-select: text; user-select: text; }
+
+  /* 老人大字模式：一键放大全局字号（localStorage 记忆） */
+  #app.big .title { font-size: 25px; }
+  #app.big .sub { font-size: 15px; }
+  #app.big .msg { font-size: 23px; }
+  #app.big #msgInput { font-size: 23px; height: 58px; }
+  #app.big #sendBtn { height: 58px; font-size: 23px; }
+  #app.big #imgBtn, #app.big #vmBtn { height: 58px; width: 58px; font-size: 26px; }
+  #app.big #quickBar button { font-size: 18px; padding: 8px 14px; }
+  #app.big .member .mname { font-size: 21px; }
+  #app.big .member .calltip { font-size: 15px; }
+  #app.big #bigFontBtn { font-size: 18px; padding: 8px 14px; }
+
+  /* ---------- 通话界面 ---------- */
+  #callPage {
+    position: fixed; inset: 0; background: #14532d; color: #fff; z-index: 20;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px;
+  }
+  #callPage .bigAvatar {
+    width: 110px; height: 110px; border-radius: 50%; background: #1faa59;
+    display: flex; align-items: center; justify-content: center; font-size: 52px; font-weight: 700;
+  }
+  #callStatus { font-size: 20px; opacity: .9; }
+  #callTimer { font-size: 16px; opacity: .7; }
+  .callTip { font-size: 13px; color: #ffd54d; max-width: 260px; text-align: center; line-height: 1.5; }
+  .audioIndicators { display: flex; gap: 14px; margin-top: 6px; }
+  .ind { font-size: 14px; padding: 6px 14px; border-radius: 20px; background: rgba(255,255,255,.12); color: #cfd8dc; }
+  .ind.on { background: #2e7d32; color: #fff; }
+  .ind.off { background: rgba(255,255,255,.12); color: #90a4ae; }
+  .callDiag { font-size: 11px; color: #90a4ae; max-width: 300px; text-align: center; line-height: 1.6; margin-top: 4px; word-break: break-all; }
+  .callDiag.bad { color: #ff8a80; font-weight: 600; }
+  .testBtn {
+    margin-top: 10px; padding: 10px 20px; border-radius: 22px;
+    background: rgba(255,255,255,.15); color: #ffd54d; font-size: 14px;
+  }
+  #hangupBtn {
+    width: 76px; height: 76px; border-radius: 50%; background: #e53935; color: #fff;
+    font-size: 17px; font-weight: 700; margin-top: 30px;
+  }
+  .callRow { display: flex; align-items: center; gap: 18px; margin-top: 10px; }
+  .vUpgrade { margin-top: 0; background: rgba(67,160,71,.25); color: #a5d6a7; }
+
+  /* ---------- 视频通话层 ---------- */
+  #videoLayer { position: fixed; inset: 0; z-index: 20; background: #000; }
+  #videoLayer[hidden] { display: none; }
+  #remoteVideo { width: 100%; height: 100%; object-fit: cover; background: #000; }
+  .vPlace {
+    position: absolute; inset: 0; z-index: 1; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; gap: 10px; color: rgba(255,255,255,.55);
+    font-size: 14px; background: #0a0a10;
+  }
+  .vPlace b { font-size: 34px; font-weight: 300; }
+  .vPlace[hidden] { display: none; }
+  .vLocal {
+    position: absolute; top: 60px; right: 14px; width: 96px; height: 128px;
+    border-radius: 14px; overflow: hidden; border: 1.5px solid rgba(255,255,255,.4);
+    background: #111; box-shadow: 0 6px 20px rgba(0,0,0,.5); z-index: 2;
+  }
+  .vLocal canvas { width: 100%; height: 100%; object-fit: cover; display: block; }
+  .vLabel {
+    position: absolute; top: 64px; left: 50%; transform: translateX(-50%);
+    background: rgba(0,0,0,.55); color: #fff; font-size: 12px; padding: 6px 14px;
+    border-radius: 16px; white-space: nowrap; z-index: 2;
+  }
+  .vControls {
+    position: absolute; bottom: 36px; left: 0; right: 0; z-index: 2;
+    display: flex; justify-content: center; gap: 14px;
+  }
+  .vBtn {
+    padding: 12px 18px; border-radius: 24px; background: rgba(255,255,255,.16);
+    color: #fff; font-size: 14px; backdrop-filter: blur(8px);
+  }
+  .vBtn.on { background: #e53935; }
+  .vBtn.hang { background: #e53935; font-weight: 700; }
+  .vBtn:disabled { opacity: .5; }
+
+  /* ---------- 来电弹窗 ---------- */
+  #incoming {
+    position: fixed; inset: 0; background: rgba(0,0,0,.75); z-index: 30;
+    display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 22px;
+  }
+  #incoming .who { color: #fff; font-size: 26px; font-weight: 700; }
+  #incoming .tip { color: #ddd; font-size: 15px; margin-top: -14px; }
+  #incoming .btns { display: flex; gap: 60px; margin-top: 20px; }
+  .callBtn { width: 72px; height: 72px; border-radius: 50%; font-size: 16px; font-weight: 700; color: #fff; }
+  .callBtn.answer { background: #43a047; }
+  .callBtn.reject { background: #e53935; }
+
+  [hidden] { display: none !important; }
+</style>
+</head>
+<body>
+
+<!-- 登录页 -->
+<div id="login">
+  <h1>家庭聊天</h1>
+  <p>家人之间的聊天与通话 · 打开就能用</p>
+  <input id="nameInput" maxlength="20" placeholder="你的昵称（如：妈妈）" autocomplete="off">
+  <button id="joinBtn">开 始 使 用</button>
+  <div id="verTag" style="margin-top:14px;font-size:11px;opacity:.55;">版本 v28</div>
+</div>
+
+<!-- 主界面 -->
+<div id="app" hidden>
+  <div id="topbar">
+    <div>
+      <div class="title">家庭聊天</div>
+      <div class="sub"><span id="connDot"></span><span id="connText">连接中…</span></div>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;flex-shrink:0;">
+      <div class="sub" id="onlineBox">在线 <span id="onlineCount">0</span> 人<span id="unreadBadge"></span></div>
+      <button id="bigFontBtn" style="border:1px solid #1faa59;background:#fff;color:#1faa59;border-radius:8px;padding:5px 10px;font-size:14px;">大字</button>
+    </div>
+  </div>
+
+  <div id="members"></div>
+  <div id="hostBar" hidden>
+    <span id="hostText"></span>
+    <button id="hostBtn">开主机模式</button>
+    <button id="addrBtn">换服务器地址</button>
+    <div style="margin-top:6px;font-size:12px;line-height:1.5;color:#8a6d1f;background:#fff8e1;border:1px solid #f0dfa0;border-radius:8px;padding:6px 8px;">
+      推荐用法：一家人连<b>同一个 WiFi</b>时，在其中一台手机上点"开主机模式"，
+      其他人在"换服务器地址"里填它显示的 <b>http://192.168.x.x:8080</b>，最稳定、不断网也能聊。<br>
+      如果左上角一直"连接中/断开"，说明公用隧道临时不可用，改用上面的主机模式即可。
+    </div>
+  </div>
+  <div id="permBar" hidden>
+    <span id="permText"></span>
+    <button id="permBtn">去开启</button>
+  </div>
+  <!-- 快捷常用语：点一下直接发送，老人不用打字 -->
+  <div id="quickBar">
+    <button data-q="吃饭了吗？">吃饭了吗？</button>
+    <button data-q="我出门了">我出门了</button>
+    <button data-q="注意身体">注意身体</button>
+    <button data-q="收到了">收到了</button>
+    <button data-q="晚点打给你">晚点打给你</button>
+  </div>
+  <div id="messages"></div>
+
+  <div id="inputBar">
+    <input id="msgInput" maxlength="500" placeholder="说点什么…" autocomplete="off">
+    <button id="vmBtn" title="按住 说话">🎤</button>
+    <button id="imgBtn" title="发照片">📷</button>
+    <button id="sendBtn" disabled>发送</button>
+    <input type="file" id="imgInput" accept="image/*" hidden>
+  </div>
+</div>
+
+<!-- 录音中浮层 -->
+<div id="vmRecTip">
+  <div id="vmRecTime">0"</div>
+  <div id="vmRecText">松开发送 · 上滑取消</div>
+</div>
+
+<!-- 消息长按菜单 -->
+<div id="msgMenu"></div>
+
+<!-- 全屏看图：点消息里的缩略图弹出，点任意处关闭 -->
+<div id="imgViewer" hidden><img id="imgViewerImg" alt="照片"></div>
+
+<!-- 通话界面 -->
+<div id="callPage" hidden>
+  <div class="bigAvatar" id="callAvatar">妈</div>
+  <div class="callStatus" id="callStatus">正在呼叫…</div>
+  <div class="callTimer" id="callTimer"></div>
+  <div class="callTip" id="callTip"></div>
+  <div class="audioIndicators">
+    <span id="micInd" class="ind off">🎤 麦克风 …</span>
+    <span id="spkInd" class="ind off">🔊 对方声音 …</span>
+  </div>
+  <div class="callDiag" id="callDiag"></div>
+  <button id="micTestBtn" class="testBtn">麦克风自检（点我，然后对着手机说话）</button>
+  <div class="callRow">
+    <button id="vUpgradeBtn" class="testBtn vUpgrade">📹 视频通话</button>
+    <button id="hangupBtn">挂断</button>
+  </div>
+  <!-- 视频通话层：默认隐藏，任一方升级视频后展开 -->
+  <div id="videoLayer" hidden>
+    <video id="remoteVideo" playsinline autoplay></video>
+    <div class="vPlace" id="vPlace">摄像头已关闭</div>
+    <div class="vLocal"><canvas id="localCanvas" width="240" height="320"></canvas></div>
+    <div class="vLabel" id="vLabel">对方摄像头已开启</div>
+    <div class="vControls">
+      <button id="vCamBtn" class="vBtn">📹 开启摄像头</button>
+      <button id="vFlipBtn" class="vBtn" hidden>🔄 翻转</button>
+      <button id="vMuteBtn" class="vBtn">🎤 静音</button>
+      <button id="vHangBtn" class="vBtn hang">📵 挂断</button>
+    </div>
+  </div>
+</div>
+
+<!-- 来电弹窗 -->
+<div id="incoming" hidden>
+  <div class="who" id="incomingWho">爸爸</div>
+  <div class="tip">邀请你语音通话</div>
+  <div class="btns">
+    <button class="callBtn reject" id="rejectBtn">拒绝</button>
+    <button class="callBtn answer" id="answerBtn">接听</button>
+  </div>
+</div>
+
+<audio id="remoteAudio" autoplay playsinline></audio>
+<audio id="ringAudio" src="ring.wav" loop preload="auto" playsinline></audio>
+
+<script>
+(function () {
+  'use strict';
+
+  // ---------- 状态 ----------
+  var myName = (function () { try { return localStorage.getItem('fc_name') || ''; } catch (e) { return ''; } })();
+  var ws = null;
+  // App 模式：网络连接由原生服务持有（系统冻结网页时照常存活），页面只是 UI 终端
+  var isApp = !!(window.Android && window.Android.send);
+  var users = [];
+  var pc = null;            // RTCPeerConnection
+  var localStream = null;
+  var remoteStream = null;  // 对方的声音流
+  var callPeer = null;      // 正在通话的人
+  var isCaller = false;
+  var callTimer = null, callSeconds = 0;
+  var pendingOffer = null;  // 待处理的来电 offer
+  var pendingIce = [];      // 早于 SDP 到达的 ICE 候选，暂存后补发
+  var micMonitor = null, spkMonitor = null, diagTimer = null;
+
+  // 早到的候选先缓存，等 SDP 协商完再补发（避免丢候选导致单向不通）
+  function addRemoteIce(cand) {
+    if (pc && pc.remoteDescription && pc.remoteDescription.type) {
+      pc.addIceCandidate(new RTCIceCandidate(cand)).catch(function () {});
+    } else {
+      pendingIce.push(cand);
+    }
+  }
+
+  function flushIce() {
+    while (pendingIce.length) {
+      var c = pendingIce.shift();
+      if (pc) pc.addIceCandidate(new RTCIceCandidate(c)).catch(function () {});
+    }
+  }
+
+  var $ = function (id) { return document.getElementById(id); };
+
+  // ---------- 登录 ----------
+  if (myName) { $('nameInput').value = myName; }
+  $('joinBtn').onclick = function () {
+    var n = $('nameInput').value.replace(/[\s<>"']/g, '').slice(0, 20);
+    if (!n) { $('nameInput').focus(); return; }
+    myName = n;
+    try { localStorage.setItem('fc_name', n); } catch (e) {}
+    $('login').hidden = true;
+    $('app').hidden = false;
+    warmupAudio(); // 借"开始使用"这个点击手势解锁音频
+    connect();
+  };
+
+  // ---------- WebSocket ----------
+  var connecting = false;
+
+  function connect() {
+    if (connecting) return; // 防止重复连接
+    if (isApp) {
+      // App 模式：告诉原生服务用这个昵称连接，页面等状态下发
+      connecting = true;
+      window.Android.setName(myName);
+      // 关键：上报页面可见，否则原生服务 pageVisible=false，回声会被误当后台消息弹通知，
+      // 文本消息发出去后不显示在聊天界面（即"发送消息失败"的根因）
+      try { if (window.Android.setPageVisible) window.Android.setPageVisible(true); } catch (e) {}
+      // 关键：不在这里无条件显示"已连接"——以原生真实状态为准。
+      // 已连接就立即显示；没连上保持"连接中…"，等原生 __conn 消息下发，
+      // 避免用户看到假的"已连接"而功能实际全废。
+      try { if (window.Android.isConnected) setConn(!!window.Android.isConnected()); } catch (e) {}
+      refreshSendBtn();
+      connecting = false;
+      return;
+    }
+    connecting = true;
+    var proto = location.protocol === 'https:' ? 'wss://' : 'ws://';
+    ws = new WebSocket(proto + location.host + '/ws');
+
+    ws.onopen = function () {
+      connecting = false;
+      setConn(true);
+      ws.send(JSON.stringify({ type: 'join', name: myName }));
+      refreshSendBtn();
+    };
+    ws.onclose = function () {
+      connecting = false;
+      setConn(false);
+      // 不在这里置灰发送键：有文字时保持可点，点击会明确提示"没连上服务器"
+      setTimeout(function () { if (!$('app').hidden) connect(); }, 2000); // 自动重连
+    };
+    ws.onerror = function () {
+      connecting = false; // onclose 会接管重连
+    };
+    ws.onmessage = function (e) {
+      var m; try { m = JSON.parse(e.data); } catch (err) { return; }
+      handleMsg(m);
+    };
+  }
+
+  // 原生服务把服务器消息推进页面（App 模式唯一入口）
+  window.onNativeMessage = function (json) {
+    var m; try { m = JSON.parse(json); } catch (e) { return; }
+    handleMsg(m);
+  };
+
+  // 页面 JS 就绪：向原生服务要一次状态（历史 + 成员），并处理通知接听
+  if (isApp) {
+    setTimeout(function () {
+      try { window.Android.pageReady(); } catch (e) {}
+    }, 300);
+  }
+
+  // ---------- 主机模式（断网自救，仅 App 内可用） ----------
+  if (isApp && window.Android.startHost) {
+    $('hostBar').hidden = false;
+    $('hostText').textContent = '家里没外网？点右边让本机当服务器，家人连你的 WiFi 就能聊';
+    $('hostBtn').onclick = function () {
+      var turningOn = !/关闭/.test(this.textContent);
+      try {
+        // 点击即刻给反馈，避免"点了没反应"
+        $('hostText').textContent = turningOn ? '正在开启主机模式…' : '正在关闭主机模式…';
+        if (turningOn) window.Android.startHost(); else window.Android.stopHost();
+      } catch (e) {
+        $('hostText').textContent = '操作失败：' + ((e && e.message) ? e.message : '请重试');
+      }
+    };
+    // 换服务器地址：隧道失效/地址变更时，用户在 App 内直接自救，不用重装
+    $('addrBtn').onclick = function () {
+      var cur = '';
+      try { cur = window.Android.getServerUrl ? window.Android.getServerUrl() : ''; } catch (e) {}
+      var u = prompt('把新的服务器地址粘贴到这里（找给你 App 的人要）', cur || '');
+      if (u && u.trim()) {
+        try { window.Android.setServerUrl(u.trim()); } catch (e) {}
+        toast2('地址已保存，正在重连…');
+      }
+    };
+  }
+
+  // ---------- 后台保活自检：通知权限 / 电池白名单 ----------
+  // 后台收不到消息的三个常见原因：通知权限没给、电池优化没关、ROM 杀了服务。
+  // 前两个 App 内能检测并引导，第三个（华为启动管理）在文案里引导用户手动开
+  function refreshPermBar() {
+    if (!isApp) return;
+    var bar = $('permBar');
+    if (!bar || $('app').hidden) return;
+    var need = null;
+    try {
+      if (window.Android.notifyPermOk && !window.Android.notifyPermOk()) {
+        need = {
+          msg: '通知权限没开——App 在后台/锁屏时收不到消息和来电提醒' +
+              '（华为手机还需在 手机管家→应用启动管理 里允许后台活动）',
+          act: function () { window.Android.openNotifySettings(); }
+        };
+      } else if (window.Android.batteryOptOk && !window.Android.batteryOptOk()) {
+        need = {
+          msg: '电池优化没关——系统可能在后台杀掉应用，导致收不到消息',
+          act: function () { window.Android.openBatterySettings(); }
+        };
+      }
+    } catch (e) {}
+    if (need) {
+      $('permText').textContent = need.msg;
+      $('permBtn').textContent = '去开启';
+      $('permBtn').onclick = need.act;
+      bar.hidden = false;
+    } else {
+      bar.hidden = true;
+    }
+  }
+  if (isApp) {
+    refreshPermBar();
+    setInterval(function () { if (!$('app').hidden) refreshPermBar(); }, 10000);
+    // 从设置页回来（窗口重新获焦）立即复查，权限刚开就消掉条幅
+    window.addEventListener('focus', refreshPermBar);
+    document.addEventListener('visibilitychange', function () {
+      if (!document.hidden) refreshPermBar();
+    });
+  }
+
+  function setConn(on) {
+    $('connDot').className = on ? 'on' : '';
+    $('connText').textContent = on ? '已连接' : '断开，重连中…';
+  }
+
+  // 供 App 原生通知按钮调用：接听/拒绝
+  window.answerCallFromAndroid = function () {
+    if (pendingOffer) $('answerBtn').click();
+  };
+  window.rejectCallFromAndroid = function () {
+    $('rejectBtn').click();
+  };
+
+  // 页面从后台切回前台时：立即重连（不依赖 onclose，手机冻结页面时定时器不跑）
+  document.addEventListener('visibilitychange', function () {
+    // App 模式：如实上报页面可见性，原生服务据此决定来消息进聊天界面还是弹通知
+    if (isApp && window.Android && window.Android.setPageVisible) {
+      try { window.Android.setPageVisible(!document.hidden); } catch (e) {}
+    }
+    if (!document.hidden && !$('app').hidden && !isApp && ws && ws.readyState !== 1 && !connecting) {
+      connect();
+    }
+    // 回到前台：未读清零、标题复位
+    if (!document.hidden) clearUnread();
+    // 通话中切后台再回来：解除静音（原生播放路径保持静音，由 AudioTrack 放）
+    if (!document.hidden && $('remoteAudio').srcObject && !(useNativeAudio && pcmCtx && downProc)) {
+      $('remoteAudio').muted = false;
+    }
+  });
+
+  // 应用层心跳，保活 + 及早发现断线（App 模式由原生服务负责）
+  setInterval(function () {
+    if (!isApp && ws && ws.readyState === 1) ws.send(JSON.stringify({ type: 'ping' }));
+  }, 20000);
+
+  function send(obj) {
+    if (isApp) {
+      // App 模式：原生 send 返回是否真正写入 socket。连接未就绪时返回 false，
+      // 调用方（sendChat/图片/语音/通话信令）会如实提示"没连上服务器"，
+      // 不再出现"消息进了队列、界面却显示成功、对方永远收不到"的假发送。
+      try { return !!window.Android.send(JSON.stringify(obj)); } catch (e) { return false; }
+    }
+    if (ws && ws.readyState === 1) { ws.send(JSON.stringify(obj)); return true; }
+    return false;
+  }
+
+  // 大载荷分片发送：免费隧道会静默丢弃 >5KB 的 WS 帧（实测 5KB 过、10KB 丢），
+  // 图片/语音的 base64 统一切成 3KB 小帧过隧道，服务端原样中转，对端按 seq 重组。
+  // 首帧同步发出（拿到连接状态），其余帧带 ~18ms 节奏异步发出，避免瞬间 burst 冲爆隧道缓冲。
+  // 返回 false 表示第一帧就发不出去（连接断了）
+  var CHUNK_CHARS = 3000;
+  var CHUNK_MAX = 2000;
+  // 本地时间字符串，与服务器 nowTime() 格式一致
+  function nowStr() {
+    var d = new Date();
+    var p = function (n) { return (n < 10 ? '0' : '') + n; };
+    return p(d.getHours()) + ':' + p(d.getMinutes());
+  }
+
+  // 找一条"本地乐观显示、尚未被回声确认"且文本相同的自己消息（用于回声去重）
+  function findLocalMine(text) {
+    var nodes = document.querySelectorAll('.msg.mine[data-mid^="local-"]');
+    for (var i = nodes.length - 1; i >= 0; i--) {
+      var body = nodes[i].lastElementChild;
+      if (body && body.textContent === text) return nodes[i];
+    }
+    return null;
+  }
+
+  // 统一发送文本：发送 + 本地乐观显示（图片/语音同理）。返回是否成功交给信道。
+  function sendChat(text) {
+    text = (text || '').trim();
+    if (!text) return false;
+    if (!send({ type: 'chat', text: text })) {
+      addSys('没连上服务器，这条没发出去——等左上角显示"已连接"再发');
+      return false;
+    }
+    // 本地立即显示自己这条，等服务器回声回来再升级为真实 id（去重）。
+    // 这样即使回声稍有延迟或断线重连，自己发出的消息也"立刻看得见"，
+    // 不会再被误判成"发送消息失败"。
+    addMsg(myName, text, nowStr(), 'local-' + Date.now());
+    scrollBottom();
+    return true;
+  }
+
+  function sendBig(mtype, b64, extra) {
+    var total = Math.ceil(b64.length / CHUNK_CHARS);
+    if (total > CHUNK_MAX) total = CHUNK_MAX;
+    var mid = 'm' + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    function emit(i) {
+      var m = {
+        type: 'chunk', mid: mid, seq: i, total: total, mtype: mtype,
+        data: b64.substr(i * CHUNK_CHARS, CHUNK_CHARS)
+      };
+      if (i === 0 && extra) { for (var k in extra) m[k] = extra[k]; }
+      return send(m);
+    }
+    if (!emit(0)) return false;
+    for (var i = 1; i < total; i++) {
+      (function (idx) { setTimeout(function () { emit(idx); }, idx * 18); })(i);
+    }
+    return true;
+  }
+
+  // ---------- 媒体经 HTTP 传输（绕开隧道丢 WS 大帧） ----------
+  // 大文件（图片/语音）先 HTTP POST 上传拿 id，WS 只广播短消息引用，对端再 HTTP 取回。
+  // 隧道对 HTTP 友好（之前 GET 一直 200），对连续 WS 大帧会静默丢（实测 5KB 过 10KB 丢），
+  // 故图片/语音一律走 HTTP，不再依赖 WS 分片。
+  function uploadMedia(u8, type) {
+    var ctrl = ('AbortController' in window) ? new AbortController() : null;
+    var to = ctrl ? setTimeout(function () { ctrl.abort(); }, 12000) : null;
+    return fetch(location.origin + '/upload', {
+      method: 'POST', headers: { 'Content-Type': type || 'application/octet-stream' }, body: u8,
+      signal: ctrl ? ctrl.signal : undefined,
+    }).then(function (r) { if (to) clearTimeout(to); if (!r.ok) throw new Error('upload ' + r.status); return r.json(); })
+      .then(function (j) { if (!j.id) throw new Error('no id'); return j.id; });
+  }
+  function fetchMedia(id) {
+    return fetch(location.origin + '/media/' + encodeURIComponent(id)).then(function (r) {
+      if (!r.ok) throw new Error('media ' + r.status); return r.arrayBuffer();
+    });
+  }
+  function b64ToU8(b64) {
+    var bin = atob(b64), u8 = new Uint8Array(bin.length);
+    for (var i = 0; i < bin.length; i++) u8[i] = bin.charCodeAt(i);
+    return u8;
+  }
+  function u8ToB64(u8) {
+    var s = '', chunk = 0x8000;
+    for (var i = 0; i < u8.length; i += chunk) s += String.fromCharCode.apply(null, u8.subarray(i, i + chunk));
+    return btoa(s);
+  }
+
+  // 分片重组缓冲：mid -> { total, parts, dur }（收不齐的会被后续新 mid 挤掉，防泄漏）
+  var chunkBuf = {};
+  function handleChunk(m) {
+    var b = chunkBuf[m.mid];
+    if (!b) {
+      if (Object.keys(chunkBuf).length > 50) delete chunkBuf[Object.keys(chunkBuf)[0]];
+      b = chunkBuf[m.mid] = { total: m.total, parts: {}, dur: m.dur };
+    }
+    if (m.dur != null) b.dur = m.dur;
+    b.parts[m.seq] = m.data;
+    for (var i = 0; i < b.total; i++) if (b.parts[i] == null) return; // 还没齐
+    var out = '';
+    for (var j = 0; j < b.total; j++) out += b.parts[j];
+    delete chunkBuf[m.mid];
+    var full = { type: m.mtype, from: m.from, time: m.time, dur: b.dur };
+    if (m.mtype === 'chat-img') full.img = out;
+    else if (m.mtype === 'chat-audio') full.audio = out;
+    else return;
+    if (m.from === myName) return; // 自己发的经 server 回环回来，已本地乐观显示，不再重复
+    handleMsg(full);
+  }
+
+  // ---------- 消息处理 ----------
+  function handleMsg(m) {
+    switch (m.type) {
+      case '__conn':
+        // 原生服务的连接状态同步（App 模式）
+        setConn(!!m.on);
+        break;
+      case '__host':
+        // 主机模式状态（App 内）
+        if (m.on) {
+          $('hostText').textContent = '主机模式已开启：http://' + m.ip + ':' + m.port +
+              ' —— 让家人连家里 WiFi，在 App 里填这个地址';
+          $('hostBtn').textContent = '关闭主机模式';
+        } else {
+          $('hostText').textContent = m.err ? ('主机模式开启失败：' + m.err + '，请重试') : '主机模式已关闭';
+          $('hostBtn').textContent = '开主机模式';
+        }
+        break;
+      case 'joined':
+        myName = m.name;
+        break;
+      case 'history': {
+        // 进页面时下发最近记录，刷新不丢上下文
+        (m.list || []).forEach(function (h) {
+          if (h.type === 'chat') addMsg(h.from, h.text, h.time, h.id);
+        });
+        break;
+      }
+      case 'chat':
+        if (m.from === myName) {
+          // 自己发的：本地已乐观显示，回声回来只需把临时 id 升级为真实 id，避免重复气泡
+          var local = findLocalMine(m.text);
+          if (local) { local.setAttribute('data-mid', m.id); break; }
+        }
+        addMsg(m.from, m.text, m.time, m.id);
+        if (m.from !== myName) bumpUnread();
+        // 纯浏览器模式且页面在后台：自己弹原生通知（App 模式由原生服务负责）
+        if (!isApp && window.Android && window.Android.showMessageNotification && document.hidden) {
+          window.Android.showMessageNotification(m.from, m.text);
+        }
+        break;
+      case 'chat-img': {
+        var mine = (m.from === myName);
+        if (!mine) bumpUnread();
+        // 纯浏览器模式且页面在后台：图片通知（App 模式由原生服务负责）
+        if (!isApp && !mine && window.Android && window.Android.showMessageNotification && document.hidden) {
+          window.Android.showMessageNotification(m.from, '[图片]');
+        }
+        if (mine) break; // 自己发的已本地乐观显示，回环消息跳过，避免重复
+        if (m.img) {
+          addImgMsg(m.from, m.img, m.time); // 旧客户端整条
+        } else if (m.id) {
+          fetchMedia(m.id).then(function (ab) {
+            var url = URL.createObjectURL(new Blob([ab], { type: m.mime || 'image/jpeg' }));
+            addImgMsg(m.from, url, m.time);
+          }).catch(function () { addSys(m.from + ' 发来的图片加载失败'); });
+        }
+        break;
+      }
+      case 'chat-audio': {
+        var mine = (m.from === myName);
+        if (!mine) bumpUnread();
+        // 纯浏览器模式且页面在后台：语音通知（App 模式由原生服务负责）
+        if (!isApp && !mine && window.Android && window.Android.showMessageNotification && document.hidden) {
+          window.Android.showMessageNotification(m.from, '[语音]');
+        }
+        if (mine) break; // 自己发的已本地乐观显示，回环消息跳过，避免重复
+        if (m.audio) {
+          addAudioMsg(m.from, m.audio, m.dur, m.time); // 旧客户端整条
+        } else if (m.id) {
+          fetchMedia(m.id).then(function (ab) {
+            addAudioMsg(m.from, u8ToB64(new Uint8Array(ab)), m.dur, m.time);
+          }).catch(function () { addSys(m.from + ' 发来的语音加载失败'); });
+        }
+        break;
+      }
+      case 'chat-recall': {
+        // 有人撤回了一条消息：本地有就抹掉，并提示一声
+        var rn = document.querySelector('.msg[data-mid="' + m.id + '"]');
+        if (rn) { rn.parentNode.removeChild(rn); addSys('一条消息被撤回了'); }
+        break;
+      }
+      case 'system':
+        addSys(m.text);
+        break;
+      case 'users':
+        users = m.list || [];
+        renderMembers();
+        break;
+      case 'call-fail':
+        if (m.reason === 'offline') {
+          addSys(m.to + ' 现在不在线，等对方上线再打');
+          endCallUI();
+        }
+        break;
+      case 'call-offer':
+        onIncomingCall(m);
+        break;
+      case 'call-answer':
+        onCallAnswered(m);
+        break;
+      case 'call-reject':
+        onCallRejected(m);
+        break;
+      case 'call-end':
+        onRemoteHangup();
+        break;
+      case 'video-toggle':
+        if (callPeer === m.from) onRemoteVideoToggle(m.on);
+        break;
+      case 'ice':
+        onRemoteIce(m);
+        break;
+      case 'chunk':
+        // 大载荷分片（图片/语音）：攒齐同一 mid 后重组，走正常消息渲染
+        handleChunk(m);
+        break;
+    }
+  }
+
+  // ---------- 聊天 UI ----------
+  function addMsg(from, text, time, id) {
+    var div = document.createElement('div');
+    div.className = 'msg ' + (from === myName ? 'mine' : 'other');
+    if (id) div.setAttribute('data-mid', id);
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = (from === myName ? '我' : from) + ' · ' + (time || '');
+    var body = document.createElement('span');
+    body.textContent = text;
+    div.appendChild(who); div.appendChild(body);
+    $('messages').appendChild(div);
+    bindMsgLongPress(div, id, from, text);
+    scrollBottom();
+  }
+
+  // 图片消息气泡：缩略图 + 点击全屏看原图
+  function addImgMsg(from, dataUrl, time, sizeKb) {
+    var div = document.createElement('div');
+    div.className = 'msg imgmsg ' + (from === myName ? 'mine' : 'other');
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = (from === myName ? '我' : from) + ' · ' + (time || '');
+    div.appendChild(who);
+    var wrap = document.createElement('span');
+    wrap.className = 'imgwrap';
+    var img = document.createElement('img');
+    img.className = 'thumb';
+    img.src = dataUrl;
+    img.alt = '照片';
+    img.onclick = function () { showImgViewer(dataUrl); };
+    wrap.appendChild(img);
+    var info = document.createElement('div');
+    info.className = 'imginfo';
+    info.textContent = sizeKb ? ('照片 · ' + sizeKb + ' KB · 点开放大') : '照片 · 点开放大';
+    wrap.appendChild(info);
+    div.appendChild(wrap);
+    $('messages').appendChild(div);
+    scrollBottom();
+  }
+
+  // 全屏看图
+  function showImgViewer(dataUrl) {
+    $('imgViewerImg').src = dataUrl;
+    $('imgViewer').hidden = false;
+  }
+  $('imgViewer').onclick = function () {
+    $('imgViewer').hidden = true;
+    $('imgViewerImg').src = '';
+  };
+
+  function addSys(text) {
+    var div = document.createElement('div');
+    div.className = 'sys';
+    div.textContent = '—— ' + text + ' ——';
+    $('messages').appendChild(div);
+    scrollBottom();
+  }
+
+  function scrollBottom() {
+    var box = $('messages');
+    // 长期聊天地 DOM 会越来越重：超过 200 条就砍最旧的（视觉无感，防卡顿）
+    while (box.children.length > 200) box.removeChild(box.firstChild);
+    box.scrollTop = box.scrollHeight;
+  }
+
+  // ---------- 消息长按菜单：复制 / 撤回自己的 ----------
+  var msgMenuEl = null;
+  function bindMsgLongPress(div, id, from, text) {
+    var timer = null;
+    var start = function () {
+      timer = setTimeout(function () { openMsgMenu(div, id, from, text); }, 500);
+    };
+    var cancel = function () { clearTimeout(timer); };
+    div.addEventListener('touchstart', start, { passive: true });
+    div.addEventListener('touchend', cancel);
+    div.addEventListener('touchmove', cancel);
+    div.addEventListener('touchcancel', cancel);
+    // 桌面浏览器/部分机型：右键或系统长按菜单统一接管
+    div.addEventListener('contextmenu', function (e) {
+      e.preventDefault();
+      openMsgMenu(div, id, from, text);
+    });
+  }
+
+  function openMsgMenu(node, id, from, text) {
+    msgMenuEl = { id: id, from: from, text: text };
+    var menu = $('msgMenu');
+    menu.innerHTML = '';
+    if (text) {
+      var b1 = document.createElement('button');
+      b1.textContent = '复制文字';
+      b1.onclick = function () { copyText(text); closeMsgMenu(); };
+      menu.appendChild(b1);
+    }
+    if (from === myName && id) {
+      var b2 = document.createElement('button');
+      b2.className = 'danger';
+      b2.textContent = '撤回这条';
+      b2.onclick = function () {
+        if (!send({ type: 'chat-recall', id: id })) addSys('没连上服务器，撤回失败');
+        closeMsgMenu();
+      };
+      menu.appendChild(b2);
+    }
+    if (!menu.children.length) return;
+    var r = node.getBoundingClientRect();
+    var mh = menu.children.length * 45 + 8;
+    var top = r.bottom + 4;
+    if (top + mh > window.innerHeight) top = Math.max(8, r.top - mh - 4); // 贴近底部时往上翻
+    menu.style.left = Math.max(8, Math.min(r.left, window.innerWidth - 150)) + 'px';
+    menu.style.top = top + 'px';
+    menu.classList.add('on');
+  }
+
+  function closeMsgMenu() {
+    $('msgMenu').classList.remove('on');
+    msgMenuEl = null;
+  }
+  document.addEventListener('click', function (e) {
+    if (!$('msgMenu').contains(e.target)) closeMsgMenu();
+  });
+
+  function copyText(t) {
+    var ta = document.createElement('textarea');
+    ta.value = t;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.select();
+    ta.setSelectionRange(0, t.length);
+    var ok = false;
+    try { ok = document.execCommand('copy'); } catch (e) { }
+    document.body.removeChild(ta);
+    if (!ok && navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(t).catch(function () { });
+      ok = true;
+    }
+    toast2(ok ? '已复制' : '复制失败，请长按气泡手动复制');
+  }
+
+  // ---------- 未读消息提醒 ----------
+  var unread = 0;
+  function bumpUnread() {
+    unread++;
+    var b = $('unreadBadge');
+    b.textContent = unread + '条新消息';
+    b.classList.add('on');
+    if (document.hidden) document.title = '(' + unread + ') 家庭聊天';
+  }
+  function clearUnread() {
+    unread = 0;
+    $('unreadBadge').classList.remove('on');
+    document.title = '家庭聊天';
+  }
+
+  function renderMembers() {
+    // 只更新人数 span——不能用 textContent 整体赋值 onlineBox，会把未读角标一起抹掉
+    $('onlineCount').textContent = users.length;
+    var box = $('members');
+    box.innerHTML = '';
+    users.forEach(function (u) {
+      var d = document.createElement('div');
+      d.className = 'member' + (u === myName ? ' me' : '');
+      var av = document.createElement('div');
+      av.className = 'avatar';
+      av.textContent = u.charAt(0);
+      var nm = document.createElement('div');
+      nm.className = 'mname';
+      nm.textContent = u + (u === myName ? '（我）' : '');
+      d.appendChild(av); d.appendChild(nm);
+      if (u !== myName) {
+        var tip = document.createElement('div');
+        tip.className = 'calltip';
+        tip.textContent = '📞 通话';
+        d.appendChild(tip);
+        d.onclick = function () { startCall(u); };
+      }
+      box.appendChild(d);
+    });
+  }
+
+  // ---------- 发送 ----------
+  var input = $('msgInput');
+  function doSend() {
+    var t = input.value.trim();
+    if (!t) return;
+    if (sendChat(t)) {           // 发送成功（含本地乐观显示）才清空输入框，失败保留输入
+      input.value = '';
+      refreshSendBtn();
+      input.focus();
+    }
+  }
+  // 发送键状态只由"有没有文字"决定：断线也不置灰，点击有明确提示
+  function refreshSendBtn() { $('sendBtn').disabled = !input.value.trim(); }
+  $('sendBtn').onclick = doSend;
+  input.addEventListener('keydown', function (e) { if (e.key === 'Enter') doSend(); });
+  // 输入时：刷新发送键 + 顺手存草稿（老人打字慢，切页面/杀后台不丢）
+  input.addEventListener('input', function () {
+    refreshSendBtn();
+    try { localStorage.setItem('fc_draft', input.value); } catch (e) { }
+  });
+  // 恢复上次没发出去的草稿
+  try {
+    var draft = localStorage.getItem('fc_draft') || '';
+    if (draft) { input.value = draft; refreshSendBtn(); }
+  } catch (e) { }
+
+  // ---------- 快捷常用语：点一下直接发送 ----------
+  Array.prototype.forEach.call(document.querySelectorAll('#quickBar button'), function (b) {
+    b.onclick = function () {
+      var t = b.getAttribute('data-q') || '';
+      if (!t) return;
+      sendChat(t);               // 常用语：发送失败会提示，不依赖输入框
+    };
+  });
+
+  // ---------- 老人大字模式：一键放大，记住选择 ----------
+  var bigFont = false;
+  try { bigFont = localStorage.getItem('fc_bigfont') === '1'; } catch (e) { }
+  function applyBigFont() {
+    $('app').classList.toggle('big', bigFont);
+    $('bigFontBtn').textContent = bigFont ? '小字' : '大字';
+  }
+  $('bigFontBtn').onclick = function () {
+    bigFont = !bigFont;
+    try { localStorage.setItem('fc_bigfont', bigFont ? '1' : '0'); } catch (e) { }
+    applyBigFont();
+    toast2(bigFont ? '已开启大字，看屏幕更省力' : '已恢复普通字号');
+  };
+  applyBigFont();
+
+  // ---------- 发照片 ----------
+  // 选图 → canvas 缩放压缩（最长边 1280，JPEG 渐进降质到 <600KB）→ base64 走 WebSocket。
+  // App 模式：WebView 的选图走系统相册（MainActivity.onShowFileChooser 已实现）；
+  // 鸿蒙 WebView 禁 getUserMedia 但不禁 file input，这条链可用
+  $('imgBtn').onclick = function () { $('imgInput').click(); };
+
+  $('imgInput').addEventListener('change', function () {
+    var file = this.files && this.files[0];
+    this.value = ''; // 清空，否则同一张图选第二次不触发 change
+    if (!file) return;
+    if (!/^image\//.test(file.type)) { toast2('只能选图片文件'); return; }
+    if (file.size > 25 * 1024 * 1024) { toast2('照片太大了（超过 25MB），换一张小点的'); return; }
+    $('imgBtn').disabled = true;
+    toast2('正在压缩照片…');
+    compressImage(file, 1280, [0.72, 0.5, 0.35]).then(function (r) {
+      $('imgBtn').disabled = false;
+      if (!r) { toast2('照片处理失败，换一张试试'); return; }
+      var mm = /^data:([^;]+);base64,(.*)$/.exec(r.dataUrl);
+      var mime = mm ? mm[1] : 'image/jpeg';
+      var b64 = mm ? mm[2] : '';
+      addImgMsg(myName, r.dataUrl, ''); // 自己先乐观显示，不等回环
+      uploadMedia(b64ToU8(b64), mime).then(function (id) {
+        if (!send({ type: 'chat-img', id: id, mime: mime })) {
+          addSys('没连上服务器，照片没发出去——等左上角显示"已连接"再发');
+        }
+      }).catch(function () { addSys('照片没传出去：免费网络传不了大文件，点上方"开主机模式"才能稳定发照片'); });
+    }).catch(function () { $('imgBtn').disabled = false; toast2('照片处理失败'); });
+  });
+
+  /**
+   * 压缩图片到最长边 maxSide，质量按队列逐级下降，直到 dataURL 小于 maxKB。
+   * 返回 { dataUrl, kb }；失败返回 null
+   */
+  function compressImage(file, maxSide, qualities) {
+    return new Promise(function (resolve) {
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function () {
+        try {
+          var scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+          var w = Math.max(1, Math.round(img.width * scale));
+          var h = Math.max(1, Math.round(img.height * scale));
+          var c = document.createElement('canvas');
+          c.width = w; c.height = h;
+          var cx = c.getContext('2d');
+          cx.drawImage(img, 0, 0, w, h);
+          var tryNext = function (i) {
+            if (i >= qualities.length) { resolve(null); return; }
+            var dataUrl = c.toDataURL('image/jpeg', qualities[i]);
+            var kb = Math.round(dataUrl.length * 3 / 4 / 1024);
+            if (kb <= 600) resolve({ dataUrl: dataUrl, kb: kb });
+            else tryNext(i + 1);
+          };
+          tryNext(0);
+        } catch (e) { resolve(null); }
+        finally { URL.revokeObjectURL(url); }
+      };
+      img.onerror = function () { URL.revokeObjectURL(url); resolve(null); };
+      img.src = url;
+    });
+  }
+
+  // ---------- 语音消息（按住说话，App 模式） ----------
+  // 链路：按住🎤 → NativeAudio.startVoiceMsg()（原生 AudioRecord 8kHz 录音）
+  //   → onVoiceFrame 收帧 → 松手 stopVoiceMsg → onVoiceDone 合成 base64
+  //   → chat-audio 实时转发 → 对方点气泡 playVoiceMsg 播放（独立媒体通道，不占通话麦）
+  // 8kHz 16bit 单声道：裸流 16KB/s，base64 约 21.3KB/s → 600KB 上限 ≈ 28 秒
+  // 注意：原生每帧各自 base64 会带末尾 '=' 填充，绝不能 vmFrames.join('') 直接拼——
+  // 那样 '=' 会出现在串中间导致 atob 失败。正确做法是每帧解码回原始字节累加，
+  // 结束时整体编码一次（填充只在末尾）。
+  var vmChunks = [], vmStartAt = 0, vmTimer = null, vmCancelled = false, vmStartY = 0;
+  var VM_MAX_MS = 60000;
+  var VM_B64_PER_SEC = 21333; // 8kHz×2字节×4/3
+
+  window.onVoiceFrame = function (b64) {
+    try { vmChunks.push(b64ToU8(b64)); } catch (e) { }
+  };
+  window.onVoiceDone = function () { finishVoiceMsg(); };
+
+  function startVmRec() {
+    if (!isApp || !window.NativeAudio || !window.NativeAudio.startVoiceMsg) {
+      toast2('语音消息请在 App 里使用（浏览器不能直接录音）');
+      return;
+    }
+    vmChunks = []; vmCancelled = false; vmStartAt = Date.now();
+    try { window.NativeAudio.startVoiceMsg(); } catch (e) { toast2('录音启动失败'); return; }
+    $('vmBtn').classList.add('rec');
+    $('vmRecTip').classList.add('on');
+    $('vmRecText').textContent = '松开发送 · 上滑取消';
+    if (vmTimer) clearInterval(vmTimer);
+    vmTimer = setInterval(updateVmTip, 200);
+    // 最长 60 秒，到点自动发出
+    setTimeout(function () { if (vmStartAt) stopVmRec(true); }, VM_MAX_MS);
+  }
+
+  function updateVmTip() {
+    var s = (Date.now() - vmStartAt) / 1000;
+    $('vmRecTime').textContent = Math.min(60, Math.floor(s)) + '"';
+    if (vmCancelled) $('vmRecText').textContent = '松开手指，取消发送';
+  }
+
+  function stopVmRec(doSendAfter) {
+    if (!vmStartAt) return;
+    var dur = Date.now() - vmStartAt;
+    vmStartAt = 0;
+    if (vmTimer) { clearInterval(vmTimer); vmTimer = null; }
+    // 顺序要紧：先定取消标记、清掉过短片段，再通知原生停止。
+    // 原生 onVoiceDone 若是同步回调（假桥/某些机型），先设标记才不会误发
+    vmCancelled = !doSendAfter;
+    if (dur < 1000) { vmChunks = []; toast2('说话时间太短，没发出去'); }
+    try { window.NativeAudio.stopVoiceMsg(); } catch (e) { }
+    $('vmBtn').classList.remove('rec');
+    $('vmRecTip').classList.remove('on');
+  }
+
+  function finishVoiceMsg() {
+    var cancelled = vmCancelled;
+    var chunks = vmChunks;
+    vmChunks = [];
+    if (cancelled || !chunks.length) return;
+    // 合并所有原始字节，整体编码一次（避免逐帧 base64 拼接产生的内部填充=导致 atob 失败）
+    var total = 0;
+    for (var c = 0; c < chunks.length; c++) total += chunks[c].length;
+    var all = new Uint8Array(total), off = 0;
+    for (var k = 0; k < chunks.length; k++) { all.set(chunks[k], off); off += chunks[k].length; }
+    var b64 = u8ToB64(all);
+    var dur = Math.max(1, Math.round(b64.length / VM_B64_PER_SEC));
+    addAudioMsg(myName, b64, dur, ''); // 自己先乐观显示（本地有 b64 可直接播）
+    uploadMedia(all, 'application/octet-stream').then(function (id) {
+      if (!send({ type: 'chat-audio', id: id, dur: dur })) {
+        addSys('没连上服务器，这条语音没发出去——等左上角显示"已连接"再发');
+      }
+    }).catch(function () { addSys('语音没传出去：免费网络传不了大文件，点上方"开主机模式"才能稳定发语音'); });
+  }
+
+  // 语音气泡：▶ 播放（再点一次正在播时抢占播放上一条）
+  function addAudioMsg(from, audio, dur, time) {
+    var div = document.createElement('div');
+    div.className = 'msg audiomsg ' + (from === myName ? 'mine' : 'other');
+    var who = document.createElement('span');
+    who.className = 'who';
+    who.textContent = (from === myName ? '我' : from) + ' · ' + (time || '');
+    var btn = document.createElement('button');
+    btn.className = 'vplay';
+    var label = function (s) { btn.textContent = s; };
+    label('▶ 语音 ' + dur + '"');
+    var playing = false;
+    btn.onclick = function () {
+      if (!isApp || !window.NativeAudio || !window.NativeAudio.playVoiceMsg) {
+        toast2('当前设备不能播放语音');
+        return;
+      }
+      if (playing) return;
+      playing = true;
+      label('🔊 播放中…');
+      try { window.NativeAudio.playVoiceMsg(audio); } catch (e) { }
+      setTimeout(function () { playing = false; label('▶ 语音 ' + dur + '"'); }, dur * 1000 + 500);
+    };
+    div.appendChild(who); div.appendChild(btn);
+    $('messages').appendChild(div);
+    scrollBottom();
+  }
+
+  // 按住说话：触摸 + 鼠标两条路（桌面测试用鼠标；真机触摸优先，上滑 60px 取消）
+  (function () {
+    var vmBtn = $('vmBtn');
+    vmBtn.addEventListener('touchstart', function (e) {
+      e.preventDefault();
+      vmStartY = e.touches[0].clientY;
+      startVmRec();
+    }, { passive: false });
+    vmBtn.addEventListener('touchend', function (e) {
+      e.preventDefault();
+      var dy = vmStartY - (e.changedTouches && e.changedTouches[0] ? e.changedTouches[0].clientY : 0);
+      stopVmRec(dy < 60);
+    }, { passive: false });
+    vmBtn.addEventListener('touchmove', function (e) {
+      if (vmStartAt && vmStartY - e.touches[0].clientY >= 60) vmCancelled = true;
+    }, { passive: false });
+    vmBtn.addEventListener('mousedown', function (e) { e.preventDefault(); startVmRec(); });
+    vmBtn.addEventListener('mouseup', function (e) { e.preventDefault(); stopVmRec(true); });
+    vmBtn.addEventListener('mouseleave', function () { if (vmStartAt) stopVmRec(false); });
+  })();
+
+  // ---------- 来电提醒（三重保险：音频元素 + WebAudio + 标题闪烁） ----------
+  var ringCtx = null, ringTimer = null, ringTimeout = null, titleTimer = null;
+  var ringAudio = $('ringAudio');
+  var pageTitle = document.title;
+
+  // 进页面后预热音频解锁（移动端浏览器要求先有用户交互才能出声）
+  function warmupAudio() {
+    try {
+      ringCtx = ringCtx || new (window.AudioContext || window.webkitAudioContext)();
+      if (ringCtx.state === 'suspended') ringCtx.resume().catch(function () {});
+      ringAudio.volume = 0;
+      var p = ringAudio.play();
+      if (p && p.catch) p.catch(function () {});
+      setTimeout(function () { ringAudio.pause(); ringAudio.volume = 1; }, 60);
+    } catch (e) {}
+  }
+
+  function ringBeep(freq, dur, delay) {
+    if (!ringCtx) return;
+    var t = ringCtx.currentTime + (delay || 0);
+    var o = ringCtx.createOscillator(), g = ringCtx.createGain();
+    o.type = 'sine';
+    o.frequency.value = freq;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.exponentialRampToValueAtTime(0.35, t + 0.02);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    o.connect(g);
+    g.connect(ringCtx.destination);
+    o.start(t);
+    o.stop(t + dur + 0.05);
+  }
+
+  function startRing() {
+    // 在 App 里运行时：声音/震动/弹窗全部交给原生系统通知（后台也能响）
+    if (window.Android && window.Android.showCallNotification) {
+      window.Android.showCallNotification($('incomingWho').textContent || '家人');
+      return;
+    }
+    // 1. 音频元素（主通道，华为浏览器下最可靠）
+    try {
+      ringAudio.currentTime = 0;
+      var p = ringAudio.play();
+      if (p && p.catch) p.catch(function () {
+        // 2. WebAudio 兜底
+        try {
+          if (ringCtx && ringCtx.state === 'suspended') ringCtx.resume();
+          var pattern = function () {
+            ringBeep(660, 0.15, 0);
+            ringBeep(880, 0.2, 0.2);
+          };
+          pattern();
+          ringTimer = setInterval(pattern, 1500);
+        } catch (e2) {}
+      });
+    } catch (e) {}
+
+    // 3. 震动（部分浏览器不支持则静默跳过）
+    try {
+      if (navigator.vibrate) navigator.vibrate([400, 200, 400, 200, 400]);
+    } catch (e3) {}
+
+    // 4. 标题闪烁：后台标签也能看到
+    var who = $('incomingWho').textContent || '家人';
+    var flip = false;
+    titleTimer = setInterval(function () {
+      document.title = flip ? '📞 ' + who + ' 来电！' : '家庭聊天';
+      flip = !flip;
+    }, 600);
+
+    // 35 秒无人接听自动挂断
+    ringTimeout = setTimeout(function () {
+      if (pendingOffer) {
+        $('rejectBtn').click();
+        addSys('对方没接听');
+      }
+    }, 35000);
+  }
+
+  function stopRing() {
+    try { ringAudio.pause(); ringAudio.currentTime = 0; } catch (e) {}
+    if (ringTimer) { clearInterval(ringTimer); ringTimer = null; }
+    if (ringTimeout) { clearInterval(ringTimeout); ringTimeout = null; }
+    if (titleTimer) { clearInterval(titleTimer); titleTimer = null; }
+    document.title = pageTitle;
+    try { if (navigator.vibrate) navigator.vibrate(0); } catch (e) {}
+  }
+
+  // ---------- 原生音频桥（App 内绕过鸿蒙 WebView 麦克风限制） ----------
+  var useNativeAudio = !!(window.NativeAudio && window.NativeAudio.startMic);
+  var pcmCtx = null, pcmProc = null, pcmDest = null, pcmQueue = [], pcmRate = 48000;
+  var nativeRate = 0; // 原生层实际录音/播放采样率（0=未知），与 pcmRate 不一致时做重采样
+  // 上行链路自检：原生 PCM 到达时间 / ScriptProcessor 调度时间，4~5 秒没动就是链路断了
+  var micPcmAt = 0, micPcmFrames = 0, pcmProcAt = 0, pcmProcFires = 0, micRestarts = 0, micRestartAt = 0;
+  var micMuted = false; // 硬静音：App 模式静音按钮置位，pcmProc 直接输出全零
+
+  // 线性插值重采样：设备 AudioRecord 采样率与网页 AudioContext 不一致时，
+  // 不重采样会出现周期性队列掏空 → 一下一下的沙沙断续杂音
+  function resampleArr(arr, from, to) {
+    if (!from || !to || from === to || arr.length < 2) return arr;
+    var ratio = from / to, n = Math.floor(arr.length / ratio);
+    if (n < 1) return arr;
+    var out = new Float32Array(n);
+    for (var i = 0; i < n; i++) {
+      var pos = i * ratio, i0 = pos | 0, i1 = Math.min(i0 + 1, arr.length - 1), f = pos - i0;
+      out[i] = arr[i0] * (1 - f) + arr[i1] * f;
+    }
+    return out;
+  }
+  window.onNativeAudioReady = function (rate) {
+    nativeRate = rate;
+    try { if (window.NativeAudio && window.NativeAudio.setRate) window.NativeAudio.setRate(pcmRate); } catch (e) {}
+  };
+
+  function buildNativeMicStream() {
+    pcmQueue = []; pcmQueued = 0;
+    pcmCtx = new (window.AudioContext || window.webkitAudioContext)();
+    if (pcmCtx.state === 'suspended') pcmCtx.resume();
+    pcmRate = pcmCtx.sampleRate || 48000;
+    // 让原生层按同样的采样率录音/播放，避免变调
+    try { window.NativeAudio.setRate(pcmRate); } catch (e) {}
+    pcmProc = pcmCtx.createScriptProcessor(4096, 1, 1);
+    pcmDest = pcmCtx.createMediaStreamDestination();
+    // 后处理状态：单极点高通（去直流/交流隆隆声）+ 一阶低通（压 5kHz 以上滋滋噪声）
+    // + 噪声门（压安静期底噪，防 WebRTC AGC 放大杂音）
+    var hpX = 0, hpY = 0, lpY = 0;
+    var lpA = 1 - Math.exp(-2 * Math.PI * 5000 / pcmRate); // 5kHz 一阶低通系数
+    var ngGain = 1;
+    pcmProc.onaudioprocess = function (e) {
+      pcmProcAt = Date.now(); pcmProcFires++;
+      // 硬静音：直接输出全零，不依赖 track.enabled 在鸿蒙 WebView 的语义
+      if (micMuted) {
+        var mout = e.outputBuffer.getChannelData(0);
+        for (var mi = 0; mi < mout.length; mi++) mout[mi] = 0;
+        return;
+      }
+      // 从队列取样本填满输出缓冲（队列里是原生推来的 PCM 帧）
+      var out = e.outputBuffer.getChannelData(0);
+      var need = out.length, filled = 0;
+      while (filled < need && pcmQueue.length) {
+        var frame = pcmQueue[0];
+        var take = Math.min(need - filled, frame.length);
+        out.set(frame.subarray(0, take), filled);
+        if (take < frame.length) pcmQueue[0] = frame.subarray(take);
+        else pcmQueue.shift();
+        filled += take;
+      }
+      for (; filled < need; filled++) out[filled] = 0; // 不够就补静音
+      // ① 单极点高通（约 40Hz 截止）：去直流漂移与电流嗡嗡声
+      for (var i = 0; i < need; i++) {
+        var x = out[i];
+        var y = x - hpX + 0.995 * hpY;
+        hpX = x; hpY = y;
+        out[i] = y;
+      }
+      // ③ 一阶低通（约 5kHz 截止）：专治"滋滋滋"高频噪声——ADC 底噪、接地干扰、
+      //    重采样插值混叠都集中在 5kHz 以上；人声能量 4kHz 以下为主，损失极小
+      for (var i2 = 0; i2 < need; i2++) {
+        lpY += lpA * (out[i2] - lpY);
+        out[i2] = lpY;
+      }
+      // ② 噪声门：双阈值滞回（已开启时低于 0.004 才关、已关闭时高于 0.008 才开，
+      //    中间区保持），专治阈值附近抖动导致的"呼吸效应"；降增益慢（防句子间
+      //    停顿被切掉）升增益快（防说话开头被吃字），爬坡平滑无咔哒
+      var s = 0;
+      for (var q = 0; q < need; q += 4) s += out[q] * out[q];
+      var rms = Math.sqrt(s / Math.ceil(need / 4));
+      var ngTarget = ngGain > 0.5
+          ? (rms > 0.004 ? 1 : 0.12)   // 已开：很难被关掉
+          : (rms > 0.008 ? 1 : 0.12);  // 已关：要响够亮才回来
+      var ngStep = ngTarget > ngGain ? 0.12 : 0.02; // 升快降慢
+      ngGain += (ngTarget - ngGain) * ngStep;
+      if (ngGain < 0.999 || ngGain > 1.001) {
+        for (var w = 0; w < need; w++) out[w] *= ngGain;
+      }
+    };
+    pcmProc.connect(pcmDest);
+    // ScriptProcessor 需要挂到 destination 才会被调度，用静音 gain 触发
+    var mute = pcmCtx.createGain();
+    mute.gain.value = 0;
+    pcmProc.connect(mute);
+    mute.connect(pcmCtx.destination);
+    return pcmDest.stream;
+  }
+
+  // 原生录音线程把 PCM 帧推进来
+  var pcmQueued = 0; // 队列中已有样本数
+  window.onNativeMicPcm = function (b64) {
+    micPcmAt = Date.now(); micPcmFrames++;
+    try {
+      var bin = atob(b64);
+      var len = bin.length >> 1;
+      var arr = new Float32Array(len);
+      for (var i = 0; i < len; i++) {
+        var lo = bin.charCodeAt(i * 2), hi = bin.charCodeAt(i * 2 + 1);
+        var v = ((hi << 8) | lo) / 32768;
+        arr[i] = v > 1 ? 1 : (v < -1 ? -1 : v);
+      }
+      // 采样率对齐：原生实际率 → 网页率
+      if (nativeRate && nativeRate !== pcmRate) arr = resampleArr(arr, nativeRate, pcmRate);
+      pcmQueue.push(arr);
+      pcmQueued += arr.length;
+      // 麦克风指示灯：有真实采集数据才亮
+      var ms = 0;
+      for (var q = 0; q < len; q += 4) ms += arr[q] * arr[q];
+      setInd('micInd', Math.sqrt(ms / Math.ceil(len / 4)) > 0.01);
+      // 积压超过 ~600ms 才丢最旧：频繁丢帧=周期性断续杂音，宁可稍延迟
+      var maxSamples = pcmRate * 0.6;
+      while (pcmQueue.length > 1 && pcmQueued > maxSamples) {
+        pcmQueued -= pcmQueue.shift().length;
+      }
+    } catch (e) {}
+  };
+
+  // ---------- 下行：对方声音也走原生播放（App 内） ----------
+  var downProc = null, downFrames = 0, downAnyFrames = 0, downWatch = null, downPushAt = 0;
+
+  function pushDownActive(on) {
+    if (!useNativeAudio || !window.NativeAudio) return;
+    var now = Date.now();
+    if (now - downPushAt < 200) return; // 200ms 节流
+    downPushAt = now;
+    try { window.NativeAudio.setDownActive(on); } catch (e) {}
+  }
+
+  function startNativeDownlink(stream) {
+    if (!useNativeAudio || !pcmCtx) return;
+    stopNativeDownlink();
+    downFrames = 0; downAnyFrames = 0;
+    try {
+      var src = pcmCtx.createMediaStreamSource(stream);
+      downProc = pcmCtx.createScriptProcessor(4096, 1, 1);
+      // 门控滞回状态：高于 0.02 判"在出声"，低于 0.008 才判"静音"，避免边界抖动引发呼吸效应
+      var downLoud = false, downLpY = 0; // downLpY：下行低通滤波器状态
+      downProc.onaudioprocess = function (e) {
+        var inp = e.inputBuffer.getChannelData(0);
+        var out = e.outputBuffer.getChannelData(0);
+        for (var i = 0; i < out.length; i++) out[i] = 0; // 不经网页播放，清零
+        var n = inp.length;
+        var sum = 0;
+        for (var j = 0; j < n; j += 4) sum += inp[j] * inp[j];
+        var rms = Math.sqrt(sum / Math.ceil(n / 4));
+        if (rms > 0.003) downFrames++;
+        downAnyFrames++; // 收到过音频数据就算链路活着——不能拿"对方没说话"判链路断
+        setInd('spkInd', rms > 0.003); // 对方声音指示灯：有数据才亮
+        if (rms > 0.02) downLoud = true; else if (rms < 0.008) downLoud = false;
+        pushDownActive(downLoud); // 告诉原生层下行在出声，触发上行平滑门控防啸叫
+        // 采样率对齐：网页率 → 原生实际播放率（不齐会变速+杂音）
+        var data = inp;
+        if (nativeRate && nativeRate !== pcmRate) data = resampleArr(inp, pcmRate, nativeRate);
+        // 下行同款一阶低通（5kHz）：压网络编解码噪声与重采样混叠的高频"滋滋"成分
+        var dLow = downLpY, dA = 1 - Math.exp(-2 * Math.PI * 5000 / (nativeRate || pcmRate));
+        for (var dk = 0; dk < data.length; dk++) { dLow += dA * (data[dk] - dLow); data[dk] = dLow; }
+        downLpY = dLow;
+        var m = data.length;
+        // Int16 → base64 → 原生 AudioTrack；Math.round 取整，安静时无量化底噪
+        var pcm = new Int16Array(m);
+        for (var k = 0; k < m; k++) {
+          var v = data[k];
+          pcm[k] = v < 0 ? (v < -1 ? -32768 : Math.round(v * 32767)) : (v > 1 ? 32767 : Math.round(v * 32767));
+        }
+        var bytes = new Uint8Array(pcm.buffer);
+        window.NativeAudio.playPcm(btoa(String.fromCharCode.apply(null, bytes)));
+      };
+      var mute = pcmCtx.createGain();
+      mute.gain.value = 0;
+      downProc.connect(mute);
+      mute.connect(pcmCtx.destination);
+      src.connect(downProc);
+      // 4 秒后音频处理节点从未被调度 → 原生下行真没生效，回退网页 <audio> 播放。
+      // 注意判定用"有没有被调度"而不是"有没有声音"——对方沉默时轨道没声音但链路是活的
+      downWatch = setTimeout(function () {
+        downWatch = null;
+        if (downAnyFrames === 0 && $('callPage').hidden === false) {
+          stopNativeDownlink();
+          if (window.NativeAudio) { try { window.NativeAudio.stopPlay(); } catch (e) {} }
+          var audio = $('remoteAudio');
+          audio.muted = false;
+          var p = audio.play();
+          if (p && p.catch) p.catch(function () {});
+          monitorSpk(remoteStream); // 回退播音：恢复指示灯 + 按真实电平门控
+        }
+      }, 4000);
+    } catch (e) {
+      stopNativeDownlink();
+    }
+  }
+
+  function stopNativeDownlink() {
+    if (downWatch) { clearTimeout(downWatch); downWatch = null; }
+    if (downProc) {
+      try { downProc.onaudioprocess = null; downProc.disconnect(); } catch (e) {}
+      downProc = null;
+    }
+    downFrames = 0; downAnyFrames = 0;
+  }
+
+  // ---------- 视频通话（原生摄像头桥 + canvas → WebRTC） ----------
+  var vCanvas = null, vCtx = null, vTrack = null, vSender = null, vStream = null;
+  var videoOn = false;        // 本地摄像头是否在发送
+  var remoteVideoOn = false;  // 对方摄像头是否在发送
+  var vFlipFront = true;
+  var camReady = false;       // 是否收到过原生摄像头帧
+  var bitmapPending = 0;      // 解码中的帧数（背压）
+  var camFrames = 0;          // 成功画上 canvas 的帧数（黑屏自检：开了 5 秒还是 0 就是没画面）
+  var camFrameErr = 0;        // 解码失败计数
+  var camOpenAt = 0;          // 本次开启摄像头的时间
+
+  function buildVideoCanvas() {
+    if (vCanvas) return;
+    vCanvas = $('localCanvas');
+    vCtx = vCanvas.getContext('2d');
+    vCtx.fillStyle = '#111'; vCtx.fillRect(0, 0, vCanvas.width, vCanvas.height);
+  }
+
+  // 原生摄像头 JPEG 帧推进来：解码画上 canvas，captureStream 自动捕获成 WebRTC 视频帧
+  // 注意：不用 fetch('data:')+createImageBitmap——鸿蒙 WebView 对这条链支持不全，
+  // 解码失败时 catch 里什么都看不到（表现就是"黑屏"）。Image 元素是兼容性最好的路径。
+  window.onNativeCamFrame = function (b64) {
+    if (!videoOn) return;
+    if (bitmapPending > 1) return; // 背压：解码堆积就丢帧，保流畅
+    bitmapPending++;
+    var img = new Image();
+    img.onload = function () {
+      bitmapPending--;
+      if (!videoOn || !vCtx) return;
+      if (!img.width || !img.height) { camFrameErr++; return; } // 解码出空图也算失败
+      camReady = true;
+      camFrames++;
+      // 居中裁切填充（ cover ），竖屏小窗比例
+      var cw = vCanvas.width, ch = vCanvas.height;
+      var scale = Math.max(cw / img.width, ch / img.height);
+      var dw = img.width * scale, dh = img.height * scale;
+      try { vCtx.drawImage(img, (cw - dw) / 2, (ch - dh) / 2, dw, dh); } catch (e) {}
+    };
+    img.onerror = function () { bitmapPending--; camFrameErr++; };
+    img.src = 'data:image/jpeg;base64,' + b64;
+  };
+
+  // 开启本地摄像头并加入 WebRTC（视频升级 + 重协商）
+  function startVideoUp() {
+    if (!pc || $('callPage').hidden) { toast2('通话没接通，开不了视频'); return; }
+    if (videoOn) return;
+    videoOn = true; camReady = false;
+    camFrames = 0; camFrameErr = 0; camOpenAt = Date.now(); // 黑屏自检基准
+    $('vCamBtn').textContent = '⏳ 开启中…';
+    $('vCamBtn').disabled = true;
+
+    function attachVideo(stream) {
+      buildVideoCanvas();
+      if (vCtx) { // 浏览器模式：把 getUserMedia 流画进小窗 canvas，UI 统一
+        var v0 = document.createElement('video');
+        v0.srcObject = stream; v0.muted = true; v0.playsInline = true; v0.autoplay = true;
+        v0.play().catch(function () {});
+        var draw = function () { if (!videoOn) return; try { vCtx.drawImage(v0, 0, 0, vCanvas.width, vCanvas.height); camFrames++; } catch (e) {} requestAnimationFrame(draw); };
+        v0.addEventListener('loadeddata', function () { camReady = true; draw(); });
+        setTimeout(function () { camReady = true; }, 1500); // 兜底：拿不到元数据也继续
+      } else {
+        camReady = true;
+      }
+      vTrack = stream.getVideoTracks()[0];
+      vSender = pc.addTrack(vTrack, stream);
+      $('vCamBtn').textContent = '📷 关闭摄像头';
+      $('vCamBtn').disabled = false;
+      $('vCamBtn').classList.add('on');
+      $('vFlipBtn').hidden = !window.NativeCamera; // 浏览器模式无原生翻转
+      updateVideoUI();
+      renegotiate(true);
+    }
+
+    if (window.NativeCamera) {
+      // App 模式：原生 Camera2 → JPEG 帧 → canvas → captureStream
+      buildVideoCanvas();
+      if (!vCanvas.captureStream) {
+        toast2('当前系统不支持网页视频，先用语音吧');
+        videoOn = false; $('vCamBtn').disabled = false; $('vCamBtn').textContent = '📹 开启摄像头';
+        return;
+      }
+      try { window.NativeCamera.startCamera(vFlipFront); } catch (e) {}
+      // 等摄像头首帧（最多 3 秒），再加轨道重协商——避免 offer 里带空视频
+      var waited = 0;
+      var wait = setInterval(function () {
+        waited += 100;
+        if (camReady || waited >= 3000) {
+          clearInterval(wait);
+          if (!videoOn) return;
+          if (!camReady) {
+            // 3 秒没等到首帧：大概率是权限被拒/被占用/机型限制。
+            // 仍然继续发轨（对端知道你在尝试），但本地红字自检会持续报警
+            toast2('没收到摄像头画面，检查权限或是否被别的应用占用');
+          }
+          try {
+            vStream = vCanvas.captureStream(15);
+            vTrack = vStream.getVideoTracks()[0];
+            vSender = pc.addTrack(vTrack, vStream);
+          } catch (e) {
+            toast2('视频启动失败：' + e.message);
+            stopVideoUp(); return;
+          }
+          $('vCamBtn').textContent = '📷 关闭摄像头';
+          $('vCamBtn').disabled = false;
+          $('vCamBtn').classList.add('on');
+          $('vFlipBtn').hidden = false;
+          updateVideoUI();
+          renegotiate(true);
+        }
+      }, 100);
+      return;
+    }
+
+    // 浏览器模式（PC 测试/备用路径）：直接 getUserMedia 视频
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+      toast2('当前浏览器不支持视频通话');
+      videoOn = false; $('vCamBtn').disabled = false; $('vCamBtn').textContent = '📹 开启摄像头';
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ video: { width: 640, height: 480 }, audio: false })
+      .then(attachVideo)
+      .catch(function (e) {
+        toast2('摄像头打开失败：' + (e && e.message ? e.message : e));
+        videoOn = false;
+        $('vCamBtn').disabled = false; $('vCamBtn').textContent = '📹 开启摄像头';
+      });
+  }
+
+  // 关闭本地摄像头（保留轨道置空，省重协商；通知对方）
+  function stopVideoUp() {
+    if (!videoOn) return;
+    videoOn = false;
+    if (window.NativeCamera) { try { window.NativeCamera.stopCamera(); } catch (e) {} }
+    try { if (vSender) vSender.replaceTrack(null); } catch (e) {}
+    try { if (vTrack) { vTrack.stop(); } } catch (e) {}
+    vTrack = null;
+    if (vCtx) { vCtx.fillStyle = '#111'; vCtx.fillRect(0, 0, vCanvas.width, vCanvas.height); }
+    $('vCamBtn').textContent = '📹 开启摄像头';
+    $('vCamBtn').disabled = false;
+    $('vCamBtn').classList.remove('on');
+    $('vFlipBtn').hidden = true;
+    // 告诉对方我这边视频关了（对方的小窗/大画面相应收起）
+    send({ type: 'video-toggle', to: callPeer, on: false });
+    updateVideoUI(); // 视频层常驻，等用户随时重开
+  }
+
+  // 重协商：带上视频轨重新 offer（renegotiation），复用 call-offer 信令
+  function renegotiate(withVideo) {
+    if (!pc || !callPeer) return;
+    pc.createOffer({ offerToReceiveAudio: true, offerToReceiveVideo: true }).then(function (o) {
+      return pc.setLocalDescription(o);
+    }).then(function () {
+      send({ type: 'call-offer', to: callPeer, sdp: pc.localDescription, video: !!withVideo });
+    }).catch(function (e) {
+      toast2('视频协商失败：' + (e && e.message ? e.message : e));
+    });
+  }
+
+  // 对方摄像头状态
+  function updateVideoUI() {
+    // 视频模式一旦进入就常驻：双方都能随时重开摄像头（控制条不消失）
+    var anyOn = videoOn || remoteVideoOn;
+    $('vPlace').hidden = !!remoteVideoOn; // 对方开着 → 占位藏起来露出大画面
+    var label = remoteVideoOn ? '对方摄像头已开启' : (videoOn ? '等待对方开启摄像头' : '摄像头已关闭');
+    $('vLabel').textContent = label;
+    $('vLabel').hidden = !anyOn;
+  }
+  function onRemoteVideoToggle(on) {
+    remoteVideoOn = !!on;
+    if (on) {
+      showVideoLayer();
+      toast2('对方开启了摄像头');
+    } else {
+      toast2('对方关闭了摄像头');
+    }
+    updateVideoUI();
+  }
+  function showVideoLayer() { if (!$('callPage').hidden) { $('videoLayer').hidden = false; updateVideoUI(); } }
+  function hideVideoLayer() { $('videoLayer').hidden = true; }
+
+  // 远端视频轨到达
+  function onRemoteVideoTrack(stream) {
+    try {
+      var v = $('remoteVideo');
+      v.srcObject = stream;
+      var p = v.play();
+      if (p && p.catch) p.catch(function () {});
+    } catch (e) {}
+  }
+
+  // ---------- 视频 UI 事件 ----------
+  $('vUpgradeBtn').onclick = function () {
+    if ($('callPage').hidden) return;
+    showVideoLayer();
+    startVideoUp();
+  };
+  $('vCamBtn').onclick = function () {
+    if (videoOn) stopVideoUp(); else startVideoUp();
+  };
+  $('vFlipBtn').onclick = function () {
+    if (window.NativeCamera) {
+      vFlipFront = !vFlipFront;
+      try { window.NativeCamera.switchCamera(); } catch (e) {}
+      toast2(vFlipFront ? '已切换前置' : '已切换后置');
+    }
+  };
+  $('vMuteBtn').onclick = function () {
+    if (!localStream) return;
+    var at = localStream.getAudioTracks()[0];
+    if (!at) return;
+    at.enabled = !at.enabled;
+    // App 模式再叠一层硬静音：鸿蒙 WebView 对 track.enabled 的语义不完全可靠，
+    // pcmProc 直接输出全零才是真静音（浏览器模式靠上面的 enabled）
+    micMuted = !at.enabled;
+    $('vMuteBtn').textContent = at.enabled ? '🎤 静音' : '🔇 已静音';
+    $('vMuteBtn').classList.toggle('on', !at.enabled);
+  };
+  $('vHangBtn').onclick = function () { endCallUI(); };
+
+  function toast2(msg) { try { if (window.Android && window.Android.toast) window.Android.toast(msg); else alert(msg); } catch (e) { alert(msg); } }
+
+  // ---------- 语音通话（WebRTC） ----------
+  var ICE_CONFIG = {
+    iceServers: [
+      { urls: 'stun:stun.l.google.com:19302' },
+      { urls: 'stun:stun1.l.google.com:19302' },
+      { urls: 'stun:stun.qq.com:3478' },
+      { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
+      { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' }
+    ]
+  };
+  // 部分华为/荣耀机型不加显式约束时麦克风采集异常
+  // AGC 关掉：自动增益会把安静期的底噪放大成"嗡嗡"杂音（App 内有软件噪声门兜底）
+  var AUDIO_CONSTRAINT = {
+    echoCancellation: true,
+    noiseSuppression: true,
+    autoGainControl: false
+  };
+
+  // 实时音频电平监控：通话页两个指示灯，一眼看出断在哪一端
+  function monitorLevel(stream, elId) {
+    var el = $(elId);
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = ctx.createMediaStreamSource(stream);
+      var analyser = ctx.createAnalyser();
+      analyser.fftSize = 512;
+      src.connect(analyser);
+      var data = new Uint8Array(analyser.frequencyBinCount);
+      var silentTicks = 0;
+      return setInterval(function () {
+        analyser.getByteTimeDomainData(data);
+        var sum = 0;
+        for (var i = 0; i < data.length; i++) {
+          var v = (data[i] - 128) / 128;
+          sum += v * v;
+        }
+      var rms = Math.sqrt(sum / data.length);
+      if (rms > 0.01) silentTicks = 0;
+      else silentTicks++;
+      el.className = 'ind ' + (silentTicks < 10 ? 'on' : 'off');
+      el.textContent = (elId === 'micInd' ? '🎤 麦克风' : '🔊 对方声音') + (silentTicks < 10 ? ' ✓' : ' ✗');
+      if (elId === 'spkInd') pushDownActive(rms > 0.02); // 播音路径：按真实电平推送门控
+    }, 250);
+    } catch (e) {
+      el.className = 'ind off';
+      el.textContent = (elId === 'micInd' ? '🎤 麦克风' : '🔊 对方声音') + ' ?';
+      return null;
+    }
+  }
+
+  function monitorMic(stream) {
+    if (micMonitor) clearInterval(micMonitor);
+    micMonitor = monitorLevel(stream, 'micInd');
+  }
+
+  function monitorSpk(stream) {
+    if (spkMonitor) clearInterval(spkMonitor);
+    spkMonitor = monitorLevel(stream, 'spkInd');
+  }
+
+  // 原生链路没有可分析的 AnalyserNode 上下文时，直接由音频数据驱动指示灯
+  function setInd(id, on) {
+    var el = $(id);
+    if (!el) return;
+    el.className = 'ind ' + (on ? 'on' : 'off');
+    el.textContent = (id === 'micInd' ? '🎤 麦克风' : '🔊 对方声音') + (on ? ' ✓' : ' ✗');
+  }
+
+  function newPeer() {
+    pendingIce = []; // 新通话清空上一轮的残留候选
+    var p = new RTCPeerConnection(ICE_CONFIG);
+    p.onicecandidate = function (e) {
+      if (e.candidate && callPeer) {
+        send({ type: 'ice', to: callPeer, candidate: e.candidate });
+      }
+    };
+    p.ontrack = function (e) {
+      var audio = $('remoteAudio');
+      remoteStream = e.streams[0];
+      if (e.track && e.track.kind === 'video') {
+        // 远端视频轨：显示大画面
+        onRemoteVideoTrack(e.streams[0]);
+        remoteVideoOn = true;
+        showVideoLayer();
+        return;
+      }
+      audio.srcObject = e.streams[0];
+      audio.muted = false;
+      if (useNativeAudio && pcmCtx) {
+        // App 内：先静音网页播放，改走原生 AudioTrack；拿不到数据会自动回退
+        audio.muted = true;
+        startNativeDownlink(e.streams[0]); // 下行指示灯由原生数据驱动
+      } else {
+        monitorSpk(e.streams[0]); // 播音路径：monitorLevel 按真实电平推送门控
+      }
+      // 移动端浏览器 autoplay 经常不生效，必须显式播放
+      var p2 = audio.play();
+      if (p2 && p2.catch) p2.catch(function () {});
+    };
+    p.onconnectionstatechange = function () {
+      if (!p) return;
+      var s = p.connectionState;
+      if (s === 'connected') { stopRing(); startTimer(); }
+      if (s === 'failed') {
+        $('callStatus').textContent = '网络打不通，通话失败——请改用微信语音';
+        setTimeout(endCallUI, 2500);
+      }
+      if (s === 'disconnected' && !$('callPage').hidden) {
+        $('callStatus').textContent = '对方网络中断了';
+      }
+    };
+    return p;
+  }
+
+  function startCall(peer) {
+    if (!$('callPage').hidden) return;
+    callPeer = peer; isCaller = true;
+    showCallPage(peer, '正在呼叫…');
+
+    function proceed(micStream) {
+      localStream = micStream;
+      if (!useNativeAudio) monitorMic(micStream); // 原生链路的指示灯由 onNativeMicPcm 驱动
+      pc = newPeer();
+      micStream.getTracks().forEach(function (t) { pc.addTrack(t, micStream); });
+      return pc.createOffer();
+    }
+
+    if (useNativeAudio) {
+      // 原生采集：App 直接录音，绕过鸿蒙 WebView 限制
+      var nativeStream = buildNativeMicStream();
+      window.NativeAudio.startMic();
+      micRestarts = 0; micRestartAt = 0; micPcmAt = Date.now(); micPcmFrames = 0; pcmProcAt = Date.now(); pcmProcFires = 0;
+      return proceed(nativeStream).then(function (offer) {
+        return pc.setLocalDescription(offer);
+      }).then(function () {
+        send({ type: 'call-offer', to: callPeer, sdp: pc.localDescription });
+      }).catch(function (err) {
+        addSys('通话发起失败：' + (err && err.message ? err.message : err));
+        endCallUI();
+      });
+    }
+
+    if (!navigator.mediaDevices || !window.RTCPeerConnection) {
+      alert('当前浏览器不支持通话，请用微信视频代替'); return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINT }).then(proceed).then(function (offer) {
+      return pc.setLocalDescription(offer);
+    }).then(function () {
+      send({ type: 'call-offer', to: callPeer, sdp: pc.localDescription });
+    }).catch(function (err) {
+      var msg = (err && err.name === 'NotAllowedError')
+        ? '麦克风权限被拒——去浏览器设置里允许这个网页用麦克风'
+        : '通话发起失败：' + (err && err.message ? err.message : err);
+      addSys(msg);
+      endCallUI();
+    });
+  }
+
+  function onIncomingCall(m) {
+    if (!$('callPage').hidden) { // 忙线
+      // 正在通话中且对方发起视频升级（带新 SDP 的 call-offer）→ 走重协商，不当新来电
+      if (m.video && m.sdp && m.from === callPeer && pc) {
+        pc.setRemoteDescription(new RTCSessionDescription(m.sdp)).then(function () {
+          flushIce();
+          return pc.createAnswer();
+        }).then(function (answer) {
+          return pc.setLocalDescription(answer);
+        }).then(function () {
+          send({ type: 'call-answer', to: callPeer, sdp: pc.localDescription });
+          showVideoLayer();
+          $('vLabel').textContent = '对方邀请你视频通话';
+        }).catch(function () {});
+        return;
+      }
+      send({ type: 'call-reject', to: m.from });
+      return;
+    }
+    pendingOffer = m;
+    $('incomingWho').textContent = m.from;
+    $('incoming').hidden = false;
+    startRing();
+    if (!(window.Android && window.Android.showCallNotification) && navigator.vibrate) {
+      try { navigator.vibrate([400, 200, 400, 200, 400]); } catch (e) {}
+    }
+    // 从通知栏"接听"按钮进来：自动接听
+    if (m.__auto) {
+      setTimeout(function () { if (pendingOffer) $('answerBtn').click(); }, 600);
+    }
+  }
+
+  $('answerBtn').onclick = function () {
+    stopRing();
+    if (window.Android && window.Android.cancelCallNotification) {
+      window.Android.cancelCallNotification();
+    }
+    var m = pendingOffer; pendingOffer = null;
+    $('incoming').hidden = true;
+    if (!m) return;
+    callPeer = m.from; isCaller = false;
+    showCallPage(m.from, '接通中…');
+
+    function attach(stream) {
+      localStream = stream;
+      if (!useNativeAudio) monitorMic(stream); // 原生链路的指示灯由 onNativeMicPcm 驱动
+      pc = newPeer();
+      stream.getTracks().forEach(function (t) { pc.addTrack(t, stream); });
+      return pc.setRemoteDescription(new RTCSessionDescription(m.sdp));
+    }
+
+    var micPromise;
+    if (useNativeAudio) {
+      // 原生采集：App 直接录音，绕过鸿蒙 WebView 限制
+      var nativeStream = buildNativeMicStream();
+      window.NativeAudio.startMic();
+      micRestarts = 0; micRestartAt = 0; micPcmAt = Date.now(); micPcmFrames = 0; pcmProcAt = Date.now(); pcmProcFires = 0;
+      micPromise = Promise.resolve(nativeStream);
+    } else {
+      if (!navigator.mediaDevices || !window.RTCPeerConnection) {
+        alert('当前浏览器不支持通话，请用微信视频代替'); return;
+      }
+      micPromise = navigator.mediaDevices.getUserMedia({ audio: AUDIO_CONSTRAINT });
+    }
+    micPromise.then(attach).then(function () {
+      flushIce();
+      return pc.createAnswer();
+    }).then(function (answer) {
+      return pc.setLocalDescription(answer);
+    }).then(function () {
+      send({ type: 'call-answer', to: callPeer, sdp: pc.localDescription });
+    }).catch(function (err) {
+      addSys('接听失败：' + (err && err.message ? err.message : err));
+      endCallUI();
+    });
+  };
+
+  $('rejectBtn').onclick = function () {
+    stopRing();
+    if (window.Android && window.Android.cancelCallNotification) {
+      window.Android.cancelCallNotification();
+    }
+    var m = pendingOffer; pendingOffer = null;
+    $('incoming').hidden = true;
+    if (m) send({ type: 'call-reject', to: m.from });
+  };
+
+  function onCallAnswered(m) {
+    if (pc && isCaller) {
+      pc.setRemoteDescription(new RTCSessionDescription(m.sdp)).then(function () {
+        flushIce();
+      }).catch(function () {});
+      $('callStatus').textContent = '通话中';
+    } else if (pc && callPeer === m.from && m.sdp) {
+      // 重协商场景（对方升级视频后的 answer）：非呼叫方也要应用远端描述
+      pc.setRemoteDescription(new RTCSessionDescription(m.sdp)).then(function () {
+        flushIce();
+      }).catch(function () {});
+    }
+  }
+
+  function onCallRejected(m) {
+    addSys(m.from + ' 没有接听');
+    endCallUI();
+  }
+
+  function onRemoteHangup() {
+    addSys('通话结束');
+    endCallUI();
+  }
+
+  function onRemoteIce(m) {
+    addRemoteIce(m.candidate);
+  }
+
+  // ---------- 通话 UI ----------
+  function showCallPage(peer, status) {
+    $('callAvatar').textContent = peer.charAt(0);
+    $('callStatus').textContent = status;
+    $('callTimer').textContent = '';
+    $('callPage').hidden = false;
+    $('callTip').textContent = '通话中请不要离开这个页面，否则会没声音';
+  }
+
+  function startTimer() {
+    if (callTimer) return;
+    $('callStatus').textContent = '通话中';
+    callSeconds = 0;
+    callTimer = setInterval(function () {
+      callSeconds++;
+      var mm = String(Math.floor(callSeconds / 60)).padStart(2, '0');
+      var ss = String(callSeconds % 60).padStart(2, '0');
+      $('callTimer').textContent = mm + ':' + ss;
+    }, 1000);
+    // 诊断信息每 2 秒刷新（App 内显示原生音频链路状态，出问题一眼定位）
+    if (diagTimer) clearInterval(diagTimer);
+    diagTimer = setInterval(function () {
+      var d = $('callDiag');
+      if (!d) return;
+      if (!(useNativeAudio && window.NativeAudio && window.NativeAudio.getDiag)) { d.textContent = ''; return; }
+      var now = Date.now();
+      // ===== 链路自检：哪一端断了立刻红字告警，能自动恢复的自动恢复 =====
+      var alert = '';
+      // ① 上行：原生麦克风数据 4 秒没到网页 → 自动重启录音（最多 2 次，冷却 5 秒）。
+      //    注意：重启只节流"动作"，告警要持续显示——否则重试中的几秒又露出
+      //    正常诊断行，用户以为没事，其实对方一直听不到
+      if (micPcmAt && now - micPcmAt > 4000) {
+        if (micRestarts < 2 && now - micRestartAt > 5000) {
+          micRestarts++;
+          micRestartAt = now;
+          try { window.NativeAudio.stopMic(); } catch (e) {}
+          setTimeout(function () {
+            if (!$('callPage').hidden) { try { window.NativeAudio.startMic(); } catch (e) {} }
+          }, 300);
+          alert = '麦克风没数据了，正在自动重试（' + micRestarts + '/2）';
+        } else if (micRestarts >= 2) {
+          alert = '麦克风还是没数据——请挂断重打一次，不行就重启 App';
+        } else {
+          alert = '麦克风没数据，等待自动重试…';
+        }
+      }
+      // ② 上行：网页音频处理（ScriptProcessor）5 秒没被调度 → WebRTC 只能发静音
+      if (!alert && pcmProcAt && now - pcmProcAt > 5000) {
+        alert = '网页音频处理' + (pcmProcFires ? '停了' : '从未运行') + '，声音发不出去——请挂断重打';
+      }
+      // 被系统冻结的 AudioContext 拉起来（页面切后台再回来时常发生）
+      if (pcmCtx && pcmCtx.state !== 'running') { try { pcmCtx.resume(); } catch (e) {} }
+      // ③ 摄像头：开了 5 秒一帧都没画上 → 黑屏（权限被拒/被占用/机型限制）
+      if (window.NativeCamera && videoOn && camOpenAt && now - camOpenAt > 5000 && camFrames === 0) {
+        alert += (alert ? '；' : '') + '摄像头画面没到：查权限、是否被别的应用占用' +
+            (camFrameErr > 0 ? '（解码失败 ' + camFrameErr + ' 帧）' : '');
+      }
+      if (alert) { d.textContent = '⚠ ' + alert; d.className = 'callDiag bad'; return; }
+      d.className = 'callDiag';
+      var s2 = 'v28 | ' + window.NativeAudio.getDiag();
+      if (nativeRate && nativeRate !== pcmRate) s2 += " 重采样" + nativeRate + "→" + pcmRate;
+      if (window.NativeCamera && window.NativeCamera.cameraDiag) s2 += " | " + window.NativeCamera.cameraDiag();
+      d.textContent = s2;
+    }, 2000);
+  }
+
+  function endCallUI() {
+    stopRing();
+    stopNativeDownlink();
+    // 视频收尾：停摄像头、清轨道、隐藏视频层
+    videoOn = false; remoteVideoOn = false;
+    camFrames = 0; camFrameErr = 0; camOpenAt = 0; camReady = false;
+    micPcmAt = 0; pcmProcAt = 0; micRestarts = 0; micRestartAt = 0;
+    if (window.NativeCamera) { try { window.NativeCamera.stopCamera(); } catch (e) {} }
+    try { if (vTrack) vTrack.stop(); } catch (e) {}
+    vTrack = null; vSender = null;
+    try { var rv = $('remoteVideo'); if (rv) rv.srcObject = null; } catch (e) {}
+    $('videoLayer').hidden = true;
+    $('vCamBtn').textContent = '📹 开启摄像头';
+    $('vCamBtn').disabled = false;
+    $('vCamBtn').classList.remove('on');
+    $('vFlipBtn').hidden = true;
+    $('vMuteBtn').textContent = '🎤 静音';
+    $('vMuteBtn').classList.remove('on');
+    if (diagTimer) { clearInterval(diagTimer); diagTimer = null; }
+    $('callDiag').textContent = '';
+    if (useNativeAudio && window.NativeAudio) {
+      try { window.NativeAudio.stopMic(); } catch (e) {}
+      try { window.NativeAudio.stopPlay(); } catch (e) {}
+      try { window.NativeAudio.setDownActive(false); } catch (e) {}
+      // 关掉本次通话的 AudioContext：不关的话 pcmProc 仍被调度、Context 越攒越多
+      try { if (pcmCtx && pcmCtx.close) { pcmCtx.close(); } } catch (e) {}
+      pcmCtx = null; pcmProc = null; pcmDest = null;
+    }
+    micMuted = false;
+    if (micMonitor) { clearInterval(micMonitor); micMonitor = null; }
+    if (spkMonitor) { clearInterval(spkMonitor); spkMonitor = null; }
+    $('micInd').className = 'ind off'; $('micInd').textContent = '🎤 麦克风 …';
+    $('spkInd').className = 'ind off'; $('spkInd').textContent = '🔊 对方声音 …';
+    if (callPeer) send({ type: 'call-end', to: callPeer });
+    if (callTimer) { clearInterval(callTimer); callTimer = null; }
+    if (pc) { try { pc.close(); } catch (e) {} pc = null; }
+    if (localStream) { localStream.getTracks().forEach(function (t) { t.stop(); }); localStream = null; }
+    callPeer = null; isCaller = false;
+    $('callPage').hidden = true;
+  }
+
+  $('hangupBtn').onclick = endCallUI;
+
+  // ---------- 麦克风自检：本地回环，不走网络 ----------
+  $('micTestBtn').onclick = function () {
+    if (!localStream) { $('callStatus').textContent = '还没接通，自检失败'; return; }
+    var btn = this;
+    btn.disabled = true;
+    btn.textContent = '自检中…对着手机说几句话';
+    try {
+      var ctx = new (window.AudioContext || window.webkitAudioContext)();
+      var src = ctx.createMediaStreamSource(localStream);
+      var g = ctx.createGain();
+      g.gain.value = 0.9;
+      src.connect(g);
+      g.connect(ctx.destination); // 麦克风 → 喇叭，直接回放
+      setTimeout(function () {
+        try { src.disconnect(); g.disconnect(); ctx.close(); } catch (e) {}
+        btn.disabled = false;
+        btn.textContent = '麦克风自检（点我，然后对着手机说话）';
+        $('callStatus').textContent = '自检结束';
+      }, 5000);
+      $('callStatus').textContent = '自检中：对着手机说话，听喇叭里有没有你自己的声音';
+    } catch (e) {
+      btn.disabled = false;
+      btn.textContent = '麦克风自检（点我，然后对着手机说话）';
+      $('callStatus').textContent = '自检失败：' + e.message;
+    }
+  };
+
+  // 页面隐藏时静音处理（省电）
+  document.addEventListener('visibilitychange', function () {
+    var a = $('remoteAudio');
+    if (!a.srcObject) return;
+    if (document.hidden) {
+      a.muted = true;
+    } else if (!(useNativeAudio && pcmCtx && downProc)) {
+      // 原生播放路径下保持静音（声音由 AudioTrack 放），否则双重播放
+      a.muted = false;
+    }
+  });
+
+  // 调试/自检钩子：把内部通话状态暴露到 window（只读，无副作用，便于自动化测试排查）
+  setInterval(function () {
+    try {
+      window.__pc = pc; window.__vOn = videoOn; window.__vRemote = remoteVideoOn;
+      window.__camReady = camReady;
+      window.__camFrames = camFrames;      // 真实画上 canvas 的帧数（黑屏自检）
+      window.__micFrames = micPcmFrames;   // 原生麦克风到达网页的帧数（上行自检）
+      window.__micMuted = micMuted;        // 硬静音状态
+      window.__micStalled = !!(micPcmAt && Date.now() - micPcmAt > 4000);
+    } catch (e) {}
+  }, 400);
+})();
+</script>
+</body>
+</html>
